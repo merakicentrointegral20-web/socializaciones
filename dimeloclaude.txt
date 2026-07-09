@@ -1,0 +1,132 @@
+Proyecto nuevo dirigido a Recursos Humanos: capacitación, evaluación y
+certificación de colaboradores de Xuri Apex (empresa de logística B2B de
+repuestos de motos), con proyección a crecer como plataforma de RRHH más
+amplia. El proyecto ya se llama xr-rrhh.
+
+CONTEXTO DE ENTORNOS (importante):
+- Xuri Apex YA ESTÁ EN PRODUCCIÓN en hosting compartido Siteground.
+- También existe una copia LOCAL de Xuri Apex corriendo en Laragon
+  (c:\laragon\www\xuri-apex) con su propia base de datos MySQL local.
+- xr-rrhh se desarrolla y prueba PRIMERO contra la base de datos LOCAL de
+  Xuri Apex (Laragon), NO contra producción. Solo cuando el flujo de
+  autenticación compartida y el esquema estén validados en local, se replica
+  la estrategia hacia producción. No tocar la base de datos de producción
+  todavía.
+- El contenido real de los módulos de capacitación se crea DESPUÉS de que la
+  parte técnica (auth compartida, esquema, permisos, seguridad) esté
+  funcionando — por ahora solo necesitamos la plomería correcta, no
+  contenido real.
+
+QUÉ ES: Colaboradores leen módulos de capacitación. El admin/RRHH (o médico
+ocupacional, o seguridad industrial — varios roles pueden crear módulos,
+cada uno en su categoría) los agenda a un EVENTO GRUPAL de capacitación con
+fecha. El admin marca asistencia. Al marcar asistencia se dispara una
+evaluación de VERDADERO/FALSO (banco de preguntas por módulo, se
+auto-califica al instante, umbral de aprobación configurable, ej. 7/10). Si
+aprueba, se emite un certificado en PDF automáticamente (plantilla con
+texto/sellos/firmas se agrega después). Si reprueba, repite.
+
+REGLA CLAVE — NO DUPLICAR BASE DE DATOS: Esta app se conecta a LA MISMA base
+MySQL de Xuri Apex (local primero, credenciales aparte, no van en este chat).
+Reutiliza estas tablas existentes sin copiarlas:
+- users: login (email, password hasheado estándar Laravel, Spatie
+  roles/permisos vía HasRoles). Guard web estándar, provider eloquent
+  App\Models\User.
+- collaborators: perfil (code, first_name, last_name, id_card, function
+  enum, email, birth_date), con user_id -> belongsTo(User), NULLABLE.
+  Todo lo de capacitación (evaluaciones, certificados) debe engancharse a
+  collaborator_id, NUNCA a user_id, porque las credenciales de un
+  colaborador pueden regenerarse.
+- Tablas de Spatie Permission (roles, permissions, model_has_roles, etc.) —
+  mismo paquete instalado en este proyecto, mismas tablas, para no
+  reinventar roles. Agregar permisos nuevos tipo modulos.crear,
+  capacitaciones.gestionar, asignables a roles existentes o nuevos
+  (rrhh-director, medico-ocupacional, seguridad-industrial).
+
+REGLA DE IDENTIDAD ÚNICA: antes de crear un usuario nuevo para un
+colaborador, SIEMPRE revisar si collaborator.user_id ya existe. Si existe,
+NO crear nada nuevo — solo asignarle el rol/permiso de capacitación a su
+cuenta ya existente. Si no existe, crear el usuario siguiendo la MISMA
+convención de correo que usa Xuri Apex hoy (patrón
+nombreapellido@xurisa.com, ver app/Livewire/AdminCEDI/CreateCollaborator.php
+método generateEmail() en el proyecto xuri-apex local como referencia).
+
+MODELO DE DATOS NUEVO:
+- Modulo: titulo, descripcion/contenido, categoria, umbral_aprobacion
+  (default 7), activo, created_by.
+- Capacitacion (evento grupal): modulo_id, fecha, modalidad/lugar,
+  instructor, created_by.
+- CapacitacionAsistente (pivote): capacitacion_id, collaborator_id, asistio
+  (bool), asistio_at. Marcar asistio=true dispara la evaluación.
+- Pregunta: modulo_id, enunciado, respuesta_correcta (boolean), orden. Solo
+  verdadero/falso, se auto-califica siempre.
+- EvaluacionIntento: collaborator_id, modulo_id, capacitacion_id, score,
+  total_preguntas, aprobado (bool), intento_numero, completed_at.
+- Certificado: collaborator_id, modulo_id, evaluacion_intento_id,
+  codigo_verificacion (uuid), emitido_at, pdf_path. Automático cuando
+  aprobado=true.
+- Dashboard admin: qué módulo le falta a cada colaborador.
+
+SEGURIDAD (prioridad alta — cédulas, fechas de nacimiento, posible dato de
+salud ocupacional):
+- HTTPS obligatorio en cualquier entorno público.
+- Subdominio público neutro/poco descriptivo (ej. portal.xurisa.com), no
+  algo que anuncie "RRHH"/"talento".
+- Usuario de MySQL dedicado con permisos mínimos para esta app (SELECT en
+  users/collaborators/tablas Spatie, CRUD completo solo en tablas propias)
+  — NO reusar el usuario todopoderoso de Xuri Apex.
+- Cifrado en reposo (cast 'encrypted') para cualquier campo sensible nuevo
+  de salud/médico que se agregue.
+- SSO con token firmado, un solo uso, corta duración
+  (URL::temporarySignedRoute).
+- 2FA obligatorio para roles elevados (rrhh-director, medico-ocupacional,
+  seguridad-industrial).
+- Cookies seguras una vez con HTTPS (SESSION_SECURE_COOKIE,
+  SESSION_HTTP_ONLY).
+- Password hashing y rate limiting de login ya vienen de fábrica con Breeze.
+
+UI: Modo claro por default, toggle oscuro opcional más adelante (no
+bloqueante). La UI NO debe ser genérica ni un montón de grids/tablas crudas
+tipo panel de admin por defecto. Debe sentirse cuidada, intuitiva y
+profesional — pensada para que un colaborador sin experiencia técnica
+entienda de un vistazo qué módulo le falta, cuándo es su capacitación, y
+vea su progreso sin fricción (jerarquía visual clara, buen uso de espacio
+en blanco, tipografía legible, estados/progreso mostrados de forma visual,
+no solo como texto en una tabla). Esto aplica tanto a la vista del
+colaborador como al panel del admin/RRHH-director.
+
+MIGRACIONES QUE CHOCAN CON LA BASE COMPARTIDA (confirmado, no correr
+migrate sin esto): el proyecto xr-rrhh ya está creado (Laravel 12 + Breeze
+Livewire + Spatie Permission instalados) y su .env ya apunta a la misma
+base de datos MySQL local xuri_apex que usa xuri-apex. Antes de correr
+"php artisan migrate", hay que borrar/mover fuera de database/migrations
+estos archivos default porque esas tablas YA EXISTEN en la base compartida:
+- 0001_01_01_000000_create_users_table.php (users, password_reset_tokens,
+  sessions — ya existen).
+- 0001_01_01_000001_create_cache_table.php (cache, cache_locks — ya
+  existen).
+- 0001_01_01_000002_create_jobs_table.php (jobs, job_batches, failed_jobs —
+  ya existen).
+- La migración de Spatie Permission publicada
+  (*_create_permission_tables.php) — xuri-apex ya tiene la suya
+  (2026_05_13_132042_create_permission_tables.php), misma versión del
+  paquete (^6.25), mismo esquema, no hace falta recrearla.
+Solo deben quedar las migraciones NUEVAS de Modulo/Capacitacion/Pregunta/
+EvaluacionIntento/Certificado.
+
+PLAN DE ARRANQUE, en este orden:
+1. Limpiar las migraciones default que chocan (ver arriba) antes de correr
+   migrate por primera vez.
+2. Login funcional reusando la tabla users real — debe poder loguear un
+   usuario que YA existe en el Xuri Apex local. Aplicar cookies seguras y
+   dejar preparado el hook de 2FA para roles elevados.
+3. Usuario de MySQL dedicado con permisos mínimos.
+4. SSO opcional vía token firmado de corta duración.
+5. Pantalla de alta de colaborador/usuario nuevo (regla de identidad única).
+6. Modelo de datos Módulo/Capacitación/Pregunta/EvaluacionIntento/
+   Certificado (solo estructura, sin contenido real).
+7. Al final: contenido real de módulos y PDF con sellos/firmas.
+
+Empecemos por el paso 1 y 2 únicamente, y ten en cuenta la sección de UI
+desde el primer login/pantalla que construyas — no uses el scaffold
+genérico de Breeze tal cual, dale identidad visual propia.
