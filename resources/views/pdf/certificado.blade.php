@@ -182,7 +182,9 @@
 
             <div class="firma">
                 <div class="linea">&nbsp;</div>
+                <div class="cargo">Lcdo. Antonio Ordoñez</div>
                 <div class="cargo">Talento Humano</div>
+
             </div>
 
             <div class="pie">
