@@ -55,7 +55,11 @@ class Editor extends Component
 
     public function mount(Modulo $modulo): void
     {
-        abort_unless($modulo->created_by === auth()->id(), 403);
+        abort_unless(
+            $modulo->created_by === auth()->id()
+                || auth()->user()->hasPermissionTo(config('xr_rrhh.manage_access_permission')),
+            403
+        );
 
         $this->modulo = $modulo;
         $this->cargarDatosModulo();
