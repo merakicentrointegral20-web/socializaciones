@@ -38,12 +38,24 @@
 
                     <div>
                         <x-input-label for="categoria" value="Categoría" />
-                        <select wire:model="categoria" id="categoria" class="w-full rounded-lg border-gray-300 text-sm focus:border-brand-500 focus:ring-brand-500">
-                            <option value="">Selecciona una categoría</option>
-                            @foreach ($categorias as $cat)
-                                <option value="{{ $cat }}">{{ $cat }}</option>
-                            @endforeach
-                        </select>
+                        <div class="flex gap-2">
+                            <select wire:model="categoria" id="categoria" class="w-full rounded-lg border-gray-300 text-sm focus:border-brand-500 focus:ring-brand-500">
+                                <option value="">Selecciona una categoría</option>
+                                @foreach ($categorias as $cat)
+                                    <option value="{{ $cat }}">{{ $cat }}</option>
+                                @endforeach
+                            </select>
+                            <button type="button" wire:click="$toggle('mostrandoNuevaCategoria')" class="shrink-0 text-sm text-brand-600 hover:text-brand-700 px-2 whitespace-nowrap">
+                                + Nueva
+                            </button>
+                        </div>
+                        @if ($mostrandoNuevaCategoria)
+                            <div class="mt-2 flex gap-2">
+                                <x-text-input wire:model="nuevaCategoria" placeholder="Nombre de la categoría nueva" class="w-full" />
+                                <x-secondary-button type="button" wire:click="agregarCategoria">Agregar</x-secondary-button>
+                            </div>
+                            <x-input-error :messages="$errors->get('nuevaCategoria')" class="mt-1" />
+                        @endif
                         <x-input-error :messages="$errors->get('categoria')" class="mt-1" />
                     </div>
 

@@ -72,10 +72,12 @@ class Show extends Component
     public function render()
     {
         $archivos = $this->modulo->archivos()->get();
+        $obligatorios = $archivos->reject->esApoyo();
 
         return view('livewire.mis-modulos.show', [
-            'imagenes' => $archivos->filter(fn ($archivo) => $archivo->esImagen()),
-            'documentos' => $archivos->reject(fn ($archivo) => $archivo->esImagen()),
+            'imagenes' => $obligatorios->filter(fn ($archivo) => $archivo->esImagen()),
+            'documentos' => $obligatorios->reject(fn ($archivo) => $archivo->esImagen()),
+            'materialApoyo' => $archivos->filter->esApoyo(),
         ]);
     }
 }

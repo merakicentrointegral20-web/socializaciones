@@ -10,6 +10,7 @@ class ModuloArchivo extends Model
 {
     protected $fillable = [
         'modulo_id',
+        'categoria',
         'nombre_original',
         'disk_path',
         'tipo',
@@ -46,6 +47,11 @@ class ModuloArchivo extends Model
     public function esImagen(): bool
     {
         return in_array($this->tipo, ['jpg', 'jpeg', 'png', 'webp', 'gif'], true);
+    }
+
+    public function esApoyo(): bool
+    {
+        return $this->categoria === 'apoyo';
     }
 
     public function tamanoLegible(): string

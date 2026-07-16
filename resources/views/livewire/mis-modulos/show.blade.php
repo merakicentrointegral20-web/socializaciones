@@ -74,10 +74,33 @@
             @if ($documentos->isNotEmpty())
                 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                     <div class="p-5 border-b border-gray-100">
-                        <h3 class="text-sm font-medium text-gray-900">Materiales</h3>
+                        <h3 class="text-sm font-medium text-gray-900">Revisión obligatoria</h3>
                     </div>
                     <div class="divide-y divide-gray-50">
                         @foreach ($documentos as $archivo)
+                            <a href="{{ route('modulos.archivos.download', [$modulo, $archivo]) }}" target="_blank" class="p-4 flex items-center gap-4 hover:bg-gray-50/70 transition">
+                                <span class="inline-flex items-center justify-center h-9 w-9 rounded-lg bg-brand-50 text-brand-700 text-xs font-semibold uppercase shrink-0">
+                                    {{ $archivo->tipo }}
+                                </span>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm text-gray-700 truncate">{{ $archivo->nombre_original }}</p>
+                                    <p class="text-xs text-gray-400">{{ $archivo->tamanoLegible() }}</p>
+                                </div>
+                                <span class="text-brand-600 text-xs font-medium shrink-0">Abrir en pestaña nueva</span>
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
+            @if ($materialApoyo->isNotEmpty())
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div class="p-5 border-b border-gray-100">
+                        <h3 class="text-sm font-medium text-gray-900">Material de apoyo</h3>
+                        <p class="text-xs text-gray-400 mt-0.5">Opcional, no es necesario para avanzar en el módulo.</p>
+                    </div>
+                    <div class="divide-y divide-gray-50">
+                        @foreach ($materialApoyo as $archivo)
                             <a href="{{ route('modulos.archivos.download', [$modulo, $archivo]) }}" target="_blank" class="p-4 flex items-center gap-4 hover:bg-gray-50/70 transition">
                                 <span class="inline-flex items-center justify-center h-9 w-9 rounded-lg bg-brand-50 text-brand-700 text-xs font-semibold uppercase shrink-0">
                                     {{ $archivo->tipo }}

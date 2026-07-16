@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Modulos;
 
+use App\Models\Categoria;
 use App\Models\Modulo;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Layout;
@@ -12,8 +13,6 @@ use Livewire\WithFileUploads;
 class Editor extends Component
 {
     use WithFileUploads;
-
-    public const CATEGORIAS = ['RRHH', 'Medicina', 'Seguridad Industrial'];
 
     public Modulo $modulo;
 
@@ -30,6 +29,11 @@ class Editor extends Component
 
     public bool $activo = true;
 
+    // Colapsado por defecto al entrar a un módulo ya existente -- solo se
+    // expande a formulario editable cuando el instructor pulsa "Editar"
+    // (2026-07-16, antes se veía siempre todo el formulario abierto).
+    public bool $editandoDatos = false;
+
     // ─── Alta de pregunta ───────────────────────────────────────────────────
     public string $enunciado = '';
 
@@ -42,28 +46,51 @@ class Editor extends Component
 
     public int $opcionCorrecta = 0;
 
-    // ─── Materiales (diapositivas / PDF) ────────────────────────────────────
+    // ─── Revisión obligatoria y material de apoyo (diapositivas / PDF) ──────
     /** @var \Livewire\Features\SupportFileUploads\TemporaryUploadedFile[] */
-    public array $nuevosArchivos = [];
+    public array $nuevosArchivosObligatorios = [];
+
+    /** @var \Livewire\Features\SupportFileUploads\TemporaryUploadedFile[] */
+    public array $nuevosArchivosApoyo = [];
 
     public function mount(Modulo $modulo): void
     {
         abort_unless($modulo->created_by === auth()->id(), 403);
 
         $this->modulo = $modulo;
-        $this->titulo = $modulo->titulo;
-        $this->categoria = $modulo->categoria;
-        $this->contenido = (string) $modulo->contenido;
-        $this->umbralAprobacion = $modulo->umbral_aprobacion;
-        $this->fechaLimite = $modulo->fecha_limite?->format('Y-m-d') ?? '';
-        $this->activo = $modulo->activo;
+        $this->cargarDatosModulo();
+    }
+
+    private function cargarDatosModulo(): void
+    {
+        $this->titulo = $this->modulo->titulo;
+        $this->categoria = $this->modulo->categoria;
+        $this->contenido = (string) $this->modulo->contenido;
+        $this->umbralAprobacion = $this->modulo->umbral_aprobacion;
+        $this->fechaLimite = $this->modulo->fecha_limite?->format('Y-m-d') ?? '';
+        $this->activo = $this->modulo->activo;
+    }
+
+    public function editarDatos(): void
+    {
+        $this->editandoDatos = true;
+    }
+
+    public function cancelarEdicionDatos(): void
+    {
+        // Descarta cualquier cambio sin guardar en los campos, no solo
+        // colapsa la vista -- si no, al volver a pulsar "Editar" aparecería
+        // lo que se había escrito antes de cancelar.
+        $this->cargarDatosModulo();
+        $this->resetValidation();
+        $this->editandoDatos = false;
     }
 
     public function save(): void
     {
         $data = $this->validate([
             'titulo' => ['required', 'string', 'max:150'],
-            'categoria' => ['required', 'string', 'in:'.implode(',', self::CATEGORIAS)],
+            'categoria' => ['required', 'string', 'in:'.implode(',', Categoria::pluck('nombre')->all())],
             'contenido' => ['nullable', 'string'],
             'umbralAprobacion' => ['required', 'integer', 'min:1', 'max:10'],
             'fechaLimite' => ['nullable', 'date'],
@@ -84,6 +111,7 @@ class Editor extends Component
             'activo' => $data['activo'],
         ]);
 
+        $this->editandoDatos = false;
         session()->flash('success', 'Módulo actualizado.');
     }
 
@@ -167,15 +195,25 @@ class Editor extends Component
         $this->modulo->preguntas()->whereKey($preguntaId)->delete();
     }
 
-    public function subirArchivos(): void
+    public function subirArchivosObligatorios(): void
+    {
+        $this->guardarArchivos('nuevosArchivosObligatorios', 'obligatorio');
+    }
+
+    public function subirArchivosApoyo(): void
+    {
+        $this->guardarArchivos('nuevosArchivosApoyo', 'apoyo');
+    }
+
+    private function guardarArchivos(string $propiedad, string $categoria): void
     {
         $this->validate([
-            'nuevosArchivos.*' => ['file', 'mimes:pdf,ppt,pptx,jpg,jpeg,png,webp,gif', 'max:25600'],
+            "$propiedad.*" => ['file', 'mimes:pdf,ppt,pptx,jpg,jpeg,png,webp,gif', 'max:25600'],
         ], [], [
-            'nuevosArchivos.*' => 'archivo',
+            "$propiedad.*" => 'archivo',
         ]);
 
-        foreach ($this->nuevosArchivos as $archivo) {
+        foreach ($this->$propiedad as $archivo) {
             // Capturar esto ANTES de store(): mueve el archivo temporal, y
             // tras eso getClientOriginalName() ya no es confiable.
             $nombreOriginal = $archivo->getClientOriginalName();
@@ -188,6 +226,7 @@ class Editor extends Component
             $tamano = Storage::disk('local')->size($path);
 
             $this->modulo->archivos()->create([
+                'categoria' => $categoria,
                 'nombre_original' => $nombreOriginal,
                 'disk_path' => $path,
                 'tipo' => $extension,
@@ -197,7 +236,7 @@ class Editor extends Component
             ]);
         }
 
-        $this->reset(['nuevosArchivos']);
+        $this->reset([$propiedad]);
         session()->flash('success', 'Material subido.');
     }
 
@@ -208,10 +247,13 @@ class Editor extends Component
 
     public function render()
     {
+        $archivos = $this->modulo->archivos()->get();
+
         return view('livewire.modulos.editor', [
             'preguntas' => $this->modulo->preguntas()->with('opciones')->get(),
-            'archivos' => $this->modulo->archivos()->get(),
-            'categorias' => self::CATEGORIAS,
+            'archivosObligatorios' => $archivos->reject->esApoyo(),
+            'archivosApoyo' => $archivos->filter->esApoyo(),
+            'categorias' => Categoria::orderBy('nombre')->pluck('nombre'),
         ]);
     }
 }

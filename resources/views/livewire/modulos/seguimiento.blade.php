@@ -20,6 +20,12 @@
                 </div>
             @endif
 
+            @if (session('error'))
+                <div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                    {{ session('error') }}
+                </div>
+            @endif
+
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <select wire:model.live="filtro" class="rounded-lg border-gray-300 text-sm text-gray-600 focus:border-brand-500 focus:ring-brand-500">
@@ -148,6 +154,13 @@
                                 <a href="{{ route('capacitaciones.acta', [$modulo, $capacitacion]) }}" target="_blank" class="text-sm text-brand-600 hover:text-brand-800">
                                     Ver acta
                                 </a>
+                            @else
+                                <a href="{{ route('capacitaciones.acta-imprimir', [$modulo, $capacitacion]) }}" target="_blank" class="text-sm text-brand-600 hover:text-brand-800">
+                                    Imprimir acta
+                                </a>
+                                <x-secondary-button wire:click="abrirModalReagendar({{ $capacitacion->id }})">
+                                    Reagendar
+                                </x-secondary-button>
                             @endif
 
                             @if ($yaPaso)
@@ -234,6 +247,64 @@
             <div class="flex justify-end gap-3 pt-2">
                 <x-secondary-button wire:click="cancelarAsistencia">Cancelar</x-secondary-button>
                 <x-primary-button wire:click="guardarAsistencia" wire:loading.attr="disabled">Guardar asistencia</x-primary-button>
+            </div>
+        </div>
+    </x-modal>
+
+    <x-modal name="reagendar-induccion" focusable>
+        <div class="p-6 space-y-4">
+            <h3 class="font-medium text-gray-900">Reagendar inducción</h3>
+
+            <div>
+                <x-input-label for="fechaReagendar" value="Fecha y hora" />
+                <x-text-input wire:model="fechaReagendar" id="fechaReagendar" type="datetime-local" class="w-full" />
+                <x-input-error :messages="$errors->get('fechaReagendar')" class="mt-1" />
+            </div>
+
+            <div>
+                <x-input-label for="modalidadReagendar" value="Modalidad (opcional)" />
+                <x-text-input wire:model="modalidadReagendar" id="modalidadReagendar" class="w-full" placeholder="Presencial, virtual..." />
+                <x-input-error :messages="$errors->get('modalidadReagendar')" class="mt-1" />
+            </div>
+
+            <div>
+                <x-input-label for="lugarReagendar" value="Lugar (opcional)" />
+                <x-text-input wire:model="lugarReagendar" id="lugarReagendar" class="w-full" placeholder="Sala de capacitación, link de reunión..." />
+                <x-input-error :messages="$errors->get('lugarReagendar')" class="mt-1" />
+            </div>
+
+            <div>
+                <x-input-label value="Agregar colaboradores olvidados (opcional)" />
+                <p class="text-xs text-gray-400 mb-1">
+                    Solo aparece quien ya leyó el módulo y todavía no tiene inducción agendada. Los que ya están en esta sesión no se ven afectados.
+                </p>
+                @if ($candidatosParaAgregar->isEmpty())
+                    <p class="text-xs text-gray-300">No hay nadie pendiente por agregar.</p>
+                @else
+                    <div class="space-y-2 max-h-48 overflow-y-auto border border-gray-100 rounded-lg p-3">
+                        @foreach ($candidatosParaAgregar as $candidato)
+                            <label class="flex items-center gap-2 text-sm text-gray-600">
+                                <input type="checkbox" wire:model="seleccionadosParaAgregar" value="{{ $candidato->id }}" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
+                                {{ $candidato->name }}
+                            </label>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+
+            <div class="flex items-center justify-between gap-3 pt-2">
+                <button
+                    type="button"
+                    wire:click="eliminarInduccion"
+                    wire:confirm="¿Eliminar esta inducción? Se perderá el agendamiento y los invitados quedarán libres para que se les agende una nueva."
+                    class="text-xs text-gray-300 hover:text-red-600"
+                >
+                    Eliminar inducción
+                </button>
+                <div class="flex gap-3">
+                    <x-secondary-button wire:click="cancelarReagendar">Cancelar</x-secondary-button>
+                    <x-primary-button wire:click="guardarReagendamiento" wire:loading.attr="disabled">Guardar fecha</x-primary-button>
+                </div>
             </div>
         </div>
     </x-modal>

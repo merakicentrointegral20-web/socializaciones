@@ -107,4 +107,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON xuri_apex.pregunta_opciones TO 'xr_rrhh_
 -- tiene en ningún lado (2026-07-10).
 GRANT SELECT, INSERT, UPDATE, DELETE ON xuri_apex.colaborador_contactos TO 'xr_rrhh_app'@'127.0.0.1', 'xr_rrhh_app'@'localhost';
 
+-- Categorías de módulo, antes una lista fija en código, ahora editable
+-- desde la UI (2026-07-10).
+GRANT SELECT, INSERT, UPDATE, DELETE ON xuri_apex.categorias TO 'xr_rrhh_app'@'127.0.0.1', 'xr_rrhh_app'@'localhost';
+
 FLUSH PRIVILEGES;

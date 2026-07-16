@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Modulos;
 
+use App\Models\Categoria;
 use App\Models\Modulo;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -27,7 +28,9 @@ class Index extends Component
 
     public string $fechaLimite = '';
 
-    public const CATEGORIAS = ['RRHH', 'Medicina', 'Seguridad Industrial'];
+    public bool $mostrandoNuevaCategoria = false;
+
+    public string $nuevaCategoria = '';
 
     public function updatingSearch(): void
     {
@@ -37,16 +40,31 @@ class Index extends Component
     public function toggleCreateForm(): void
     {
         $this->showCreateForm = ! $this->showCreateForm;
-        $this->reset(['titulo', 'categoria', 'contenido', 'umbralAprobacion', 'fechaLimite']);
+        $this->reset(['titulo', 'categoria', 'contenido', 'umbralAprobacion', 'fechaLimite', 'mostrandoNuevaCategoria', 'nuevaCategoria']);
         $this->umbralAprobacion = 7;
         $this->resetValidation();
+    }
+
+    public function agregarCategoria(): void
+    {
+        $data = $this->validate([
+            'nuevaCategoria' => ['required', 'string', 'max:100', 'unique:categorias,nombre'],
+        ], [], [
+            'nuevaCategoria' => 'categoría',
+        ]);
+
+        $categoria = Categoria::create(['nombre' => $data['nuevaCategoria']]);
+
+        $this->categoria = $categoria->nombre;
+        $this->nuevaCategoria = '';
+        $this->mostrandoNuevaCategoria = false;
     }
 
     public function create(): void
     {
         $data = $this->validate([
             'titulo' => ['required', 'string', 'max:150'],
-            'categoria' => ['required', 'string', 'in:'.implode(',', self::CATEGORIAS)],
+            'categoria' => ['required', 'string', 'in:'.implode(',', Categoria::pluck('nombre')->all())],
             'contenido' => ['nullable', 'string'],
             'umbralAprobacion' => ['required', 'integer', 'min:1', 'max:10'],
             'fechaLimite' => ['nullable', 'date'],
@@ -86,7 +104,7 @@ class Index extends Component
 
         return view('livewire.modulos.index', [
             'modulos' => $modulos,
-            'categorias' => self::CATEGORIAS,
+            'categorias' => Categoria::orderBy('nombre')->pluck('nombre'),
         ]);
     }
 }

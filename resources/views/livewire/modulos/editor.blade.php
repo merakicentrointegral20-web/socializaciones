@@ -7,7 +7,11 @@
                     {{ $modulo->titulo }}
                 </h2>
             </div>
-            <a href="{{ route('modulos.seguimiento', $modulo) }}" wire:navigate class="text-sm font-medium text-brand-600 hover:text-brand-800">
+            <a
+                href="{{ route('modulos.seguimiento', $modulo) }}"
+                wire:navigate
+                class="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 transition"
+            >
                 Ver seguimiento →
             </a>
         </div>
@@ -23,62 +27,96 @@
             @endif
 
             {{-- ─── Datos del módulo ──────────────────────────────────────────── --}}
-            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
-                <h3 class="font-medium text-gray-900">Datos del módulo</h3>
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                @if ($editandoDatos)
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-medium text-gray-900">Datos del módulo</h3>
+                            <button type="button" wire:click="cancelarEdicionDatos" class="text-sm text-gray-400 hover:text-gray-600">
+                                Cancelar
+                            </button>
+                        </div>
 
-                <div>
-                    <x-input-label for="titulo" value="Título" />
-                    <x-text-input wire:model="titulo" id="titulo" class="w-full" />
-                    <x-input-error :messages="$errors->get('titulo')" class="mt-1" />
-                </div>
+                        <div>
+                            <x-input-label for="titulo" value="Título" />
+                            <x-text-input wire:model="titulo" id="titulo" class="w-full" />
+                            <x-input-error :messages="$errors->get('titulo')" class="mt-1" />
+                        </div>
 
-                <div>
-                    <x-input-label for="categoria" value="Categoría" />
-                    <select wire:model="categoria" id="categoria" class="w-full rounded-lg border-gray-300 text-sm focus:border-brand-500 focus:ring-brand-500">
-                        <option value="">Selecciona una categoría</option>
-                        @foreach ($categorias as $cat)
-                            <option value="{{ $cat }}">{{ $cat }}</option>
-                        @endforeach
-                    </select>
-                    <x-input-error :messages="$errors->get('categoria')" class="mt-1" />
-                </div>
+                        <div>
+                            <x-input-label for="categoria" value="Categoría" />
+                            <select wire:model="categoria" id="categoria" class="w-full rounded-lg border-gray-300 text-sm focus:border-brand-500 focus:ring-brand-500">
+                                <option value="">Selecciona una categoría</option>
+                                @foreach ($categorias as $cat)
+                                    <option value="{{ $cat }}">{{ $cat }}</option>
+                                @endforeach
+                            </select>
+                            <x-input-error :messages="$errors->get('categoria')" class="mt-1" />
+                        </div>
 
-                <div>
-                    <x-input-label for="contenido" value="Contenido" />
-                    <x-rich-editor model="contenido" :value="$contenido" class="rounded-lg border border-gray-300 overflow-hidden" />
-                    <x-input-error :messages="$errors->get('contenido')" class="mt-1" />
-                </div>
+                        <div>
+                            <x-input-label for="contenido" value="Contenido" />
+                            <x-rich-editor model="contenido" :value="$contenido" class="rounded-lg border border-gray-300 overflow-hidden" />
+                            <x-input-error :messages="$errors->get('contenido')" class="mt-1" />
+                        </div>
 
-                <div class="flex flex-wrap items-end gap-6">
-                    <div class="max-w-xs">
-                        <x-input-label for="umbralAprobacion" value="Umbral de aprobación (sobre 10)" />
-                        <x-text-input wire:model="umbralAprobacion" id="umbralAprobacion" type="number" min="1" max="10" class="w-full" />
-                        <x-input-error :messages="$errors->get('umbralAprobacion')" class="mt-1" />
+                        <div class="flex flex-wrap items-end gap-6">
+                            <div class="max-w-xs">
+                                <x-input-label for="umbralAprobacion" value="Umbral de aprobación (sobre 10)" />
+                                <x-text-input wire:model="umbralAprobacion" id="umbralAprobacion" type="number" min="1" max="10" class="w-full" />
+                                <x-input-error :messages="$errors->get('umbralAprobacion')" class="mt-1" />
+                            </div>
+
+                            <div class="max-w-xs">
+                                <x-input-label for="fechaLimite" value="Fecha límite (opcional)" />
+                                <x-text-input wire:model="fechaLimite" id="fechaLimite" type="date" class="w-full" />
+                                <x-input-error :messages="$errors->get('fechaLimite')" class="mt-1" />
+                            </div>
+
+                            <label class="inline-flex items-center gap-2 text-sm text-gray-600 pb-2">
+                                <input type="checkbox" wire:model="activo" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
+                                Módulo activo
+                            </label>
+                        </div>
+
+                        <div class="flex justify-end pt-2">
+                            <x-primary-button wire:click="save" wire:loading.attr="disabled">
+                                Guardar cambios
+                            </x-primary-button>
+                        </div>
                     </div>
-
-                    <div class="max-w-xs">
-                        <x-input-label for="fechaLimite" value="Fecha límite (opcional)" />
-                        <x-text-input wire:model="fechaLimite" id="fechaLimite" type="date" class="w-full" />
-                        <x-input-error :messages="$errors->get('fechaLimite')" class="mt-1" />
+                @else
+                    <div class="flex items-start justify-between gap-4">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h3 class="font-medium text-gray-900 truncate">{{ $titulo }}</h3>
+                                <span class="inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
+                                    {{ $categoria }}
+                                </span>
+                                @if ($activo)
+                                    <span class="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">Activo</span>
+                                @else
+                                    <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">Inactivo</span>
+                                @endif
+                            </div>
+                            <p class="text-xs text-gray-400 mt-1.5">
+                                Umbral de aprobación: {{ $umbralAprobacion }}/10
+                                @if ($fechaLimite)
+                                    · Fecha límite: {{ \Illuminate\Support\Carbon::parse($fechaLimite)->format('d/m/Y') }}
+                                @endif
+                            </p>
+                        </div>
+                        <x-secondary-button wire:click="editarDatos" class="shrink-0">
+                            Editar
+                        </x-secondary-button>
                     </div>
-
-                    <label class="inline-flex items-center gap-2 text-sm text-gray-600 pb-2">
-                        <input type="checkbox" wire:model="activo" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
-                        Módulo activo
-                    </label>
-                </div>
-
-                <div class="flex justify-end pt-2">
-                    <x-primary-button wire:click="save" wire:loading.attr="disabled">
-                        Guardar cambios
-                    </x-primary-button>
-                </div>
+                @endif
             </div>
 
-            {{-- ─── Materiales (diapositivas / PDF) ───────────────────────────── --}}
+            {{-- ─── Revisión obligatoria (diapositivas / PDF) ─────────────────── --}}
             <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div class="p-6 border-b border-gray-100">
-                    <h3 class="font-medium text-gray-900">Materiales</h3>
+                    <h3 class="font-medium text-gray-900">Revisión obligatoria</h3>
                     <p class="text-xs text-gray-500 mt-1">
                         Las imágenes se muestran incrustadas dentro del contenido cuando el colaborador lee el
                         módulo. Los PDF y PPT solo quedan disponibles como descarga, no se muestran incrustados.
@@ -86,7 +124,7 @@
                 </div>
 
                 <div class="divide-y divide-gray-100">
-                    @forelse ($archivos as $archivo)
+                    @forelse ($archivosObligatorios as $archivo)
                         <div class="p-5 flex items-center gap-4">
                             <span class="inline-flex items-center justify-center h-9 w-9 rounded-lg bg-brand-50 text-brand-700 text-xs font-semibold uppercase shrink-0">
                                 {{ $archivo->tipo }}
@@ -104,31 +142,90 @@
                         </div>
                     @empty
                         <div class="p-10 text-center text-sm text-gray-400">
-                            Todavía no hay materiales en este módulo.
+                            Todavía no hay materiales de revisión obligatoria en este módulo.
                         </div>
                     @endforelse
                 </div>
 
                 <div class="p-6 bg-gray-50 space-y-3">
-                    <x-input-label for="nuevosArchivos" value="Subir diapositivas, PDF o imágenes" />
+                    <x-input-label for="nuevosArchivosObligatorios" value="Subir diapositivas, PDF o imágenes" />
                     <input
                         type="file"
-                        wire:model="nuevosArchivos"
-                        id="nuevosArchivos"
+                        wire:model="nuevosArchivosObligatorios"
+                        id="nuevosArchivosObligatorios"
                         multiple
                         accept=".pdf,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.gif"
                         class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"
                     >
                     <p class="text-xs text-gray-400">PDF, PPT, PPTX, JPG, PNG, WEBP o GIF, máximo 25 MB por archivo.</p>
-                    <x-input-error :messages="$errors->get('nuevosArchivos.*')" class="mt-1" />
+                    <x-input-error :messages="$errors->get('nuevosArchivosObligatorios.*')" class="mt-1" />
 
-                    <div wire:loading wire:target="nuevosArchivos" class="text-xs text-gray-400">
+                    <div wire:loading wire:target="nuevosArchivosObligatorios" class="text-xs text-gray-400">
                         Subiendo...
                     </div>
 
-                    @if (! empty($nuevosArchivos))
-                        <x-primary-button wire:click="subirArchivos" wire:loading.attr="disabled">
+                    @if (! empty($nuevosArchivosObligatorios))
+                        <x-primary-button wire:click="subirArchivosObligatorios" wire:loading.attr="disabled">
                             Guardar materiales
+                        </x-primary-button>
+                    @endif
+                </div>
+            </div>
+
+            {{-- ─── Material de apoyo (opcional, no bloquea el avance) ────────── --}}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="p-6 border-b border-gray-100">
+                    <h3 class="font-medium text-gray-900">Material de apoyo</h3>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Material adicional del instructor. El colaborador lo puede consultar, pero no es
+                        obligatorio para avanzar en el módulo.
+                    </p>
+                </div>
+
+                <div class="divide-y divide-gray-100">
+                    @forelse ($archivosApoyo as $archivo)
+                        <div class="p-5 flex items-center gap-4">
+                            <span class="inline-flex items-center justify-center h-9 w-9 rounded-lg bg-brand-50 text-brand-700 text-xs font-semibold uppercase shrink-0">
+                                {{ $archivo->tipo }}
+                            </span>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm text-gray-800 truncate">{{ $archivo->nombre_original }}</p>
+                                <p class="text-xs text-gray-500">{{ $archivo->tamanoLegible() }}</p>
+                            </div>
+                            <a href="{{ route('modulos.archivos.download', [$modulo, $archivo]) }}" class="text-brand-600 text-sm font-medium hover:text-brand-800" target="_blank">
+                                Ver
+                            </a>
+                            <x-danger-button wire:click="eliminarArchivo({{ $archivo->id }})" wire:confirm="¿Eliminar este archivo?">
+                                Eliminar
+                            </x-danger-button>
+                        </div>
+                    @empty
+                        <div class="p-10 text-center text-sm text-gray-400">
+                            Todavía no hay material de apoyo en este módulo.
+                        </div>
+                    @endforelse
+                </div>
+
+                <div class="p-6 bg-gray-50 space-y-3">
+                    <x-input-label for="nuevosArchivosApoyo" value="Subir diapositivas, PDF o imágenes" />
+                    <input
+                        type="file"
+                        wire:model="nuevosArchivosApoyo"
+                        id="nuevosArchivosApoyo"
+                        multiple
+                        accept=".pdf,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.gif"
+                        class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"
+                    >
+                    <p class="text-xs text-gray-400">PDF, PPT, PPTX, JPG, PNG, WEBP o GIF, máximo 25 MB por archivo.</p>
+                    <x-input-error :messages="$errors->get('nuevosArchivosApoyo.*')" class="mt-1" />
+
+                    <div wire:loading wire:target="nuevosArchivosApoyo" class="text-xs text-gray-400">
+                        Subiendo...
+                    </div>
+
+                    @if (! empty($nuevosArchivosApoyo))
+                        <x-primary-button wire:click="subirArchivosApoyo" wire:loading.attr="disabled">
+                            Guardar material de apoyo
                         </x-primary-button>
                     @endif
                 </div>

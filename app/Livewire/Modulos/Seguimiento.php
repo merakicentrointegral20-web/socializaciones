@@ -45,6 +45,18 @@ class Seguimiento extends Component
 
     public $actaArchivo = null;
 
+    // ─── Reagendar una inducción ya agendada (aún sin asistencia marcada) ───
+    public ?int $capacitacionReagendando = null;
+
+    public string $fechaReagendar = '';
+
+    public string $modalidadReagendar = '';
+
+    public string $lugarReagendar = '';
+
+    /** @var int[] */
+    public array $seleccionadosParaAgregar = [];
+
     public function mount(Modulo $modulo): void
     {
         abort_unless($modulo->created_by === auth()->id(), 403);
@@ -110,6 +122,12 @@ class Seguimiento extends Component
             'fecha' => 'fecha',
         ]);
 
+        if ($this->hayConflictoDeHorario($data['fecha'])) {
+            $this->addError('fecha', 'Ya tienes otra inducción agendada a menos de 30 minutos de esa hora.');
+
+            return;
+        }
+
         $capacitacion = $this->modulo->capacitaciones()->create([
             'fecha' => $data['fecha'],
             'modalidad' => $data['modalidad'] ?: null,
@@ -127,11 +145,36 @@ class Seguimiento extends Component
         session()->flash('success', 'Inducción agendada para '.count($idsValidos).' persona(s).');
     }
 
+    // Evita agendar dos inducciones casi encimadas por error (ej. doble
+    // clic o crear otra sin revisar que ya existía una a esa hora) -- se
+    // compara contra TODAS las inducciones del mismo instructor, sin
+    // importar el módulo, porque físicamente no puede dar dos a la vez.
+    // $excluirCapacitacionId se usa al reagendar, para no chocar contra sí
+    // misma.
+    private function hayConflictoDeHorario(string $fecha, ?int $excluirCapacitacionId = null): bool
+    {
+        $momento = \Illuminate\Support\Carbon::parse($fecha);
+
+        return Capacitacion::where('instructor_user_id', auth()->id())
+            ->when($excluirCapacitacionId, fn ($q) => $q->whereKeyNot($excluirCapacitacionId))
+            ->whereBetween('fecha', [$momento->copy()->subMinutes(30), $momento->copy()->addMinutes(30)])
+            ->exists();
+    }
+
     public function abrirModalAsistencia(int $capacitacionId): void
     {
         $capacitacion = Capacitacion::with('asistentes')
             ->where('modulo_id', $this->modulo->id)
             ->findOrFail($capacitacionId);
+
+        // El botón ya está oculto en la vista hasta que pase la fecha, pero
+        // se revalida en servidor por si el método se invoca directo (misma
+        // lógica que ya se aplica al agendar/reagendar).
+        if ($capacitacion->fecha->isFuture()) {
+            session()->flash('error', 'Todavía no puedes marcar asistencia: espera a que pase la fecha de la inducción.');
+
+            return;
+        }
 
         $this->capacitacionEditando = $capacitacion->id;
 
@@ -160,6 +203,8 @@ class Seguimiento extends Component
             ->where('modulo_id', $this->modulo->id)
             ->findOrFail($this->capacitacionEditando);
 
+        abort_unless($capacitacion->fecha->isPast(), 403);
+
         $this->validate([
             'actaArchivo' => [$capacitacion->acta_path ? 'nullable' : 'required', 'image', 'max:10240'],
         ], [], [
@@ -185,6 +230,104 @@ class Seguimiento extends Component
         $this->reset(['capacitacionEditando', 'asistieron', 'actaArchivo']);
         $this->dispatch('close-modal', 'marcar-asistencia');
         session()->flash('success', 'Asistencia registrada para '.$total.' persona(s). Ya pueden rendir la evaluación.');
+    }
+
+    public function abrirModalReagendar(int $capacitacionId): void
+    {
+        $capacitacion = Capacitacion::where('modulo_id', $this->modulo->id)
+            ->whereNull('acta_path')
+            ->findOrFail($capacitacionId);
+
+        $this->resetValidation();
+        $this->capacitacionReagendando = $capacitacion->id;
+        $this->fechaReagendar = $capacitacion->fecha->format('Y-m-d\TH:i');
+        $this->modalidadReagendar = (string) $capacitacion->modalidad;
+        $this->lugarReagendar = (string) $capacitacion->lugar;
+        $this->seleccionadosParaAgregar = [];
+
+        $this->dispatch('open-modal', 'reagendar-induccion');
+    }
+
+    public function cancelarReagendar(): void
+    {
+        $this->reset(['capacitacionReagendando', 'fechaReagendar', 'modalidadReagendar', 'lugarReagendar', 'seleccionadosParaAgregar']);
+        $this->resetValidation();
+        $this->dispatch('close-modal', 'reagendar-induccion');
+    }
+
+    public function guardarReagendamiento(): void
+    {
+        // Revalida que siga sin asistencia marcada -- si alguien ya subió el
+        // acta mientras el modal estaba abierto, no tiene sentido cambiar la
+        // fecha de una sesión que ya se dio por concluida.
+        $capacitacion = Capacitacion::where('modulo_id', $this->modulo->id)
+            ->whereNull('acta_path')
+            ->findOrFail($this->capacitacionReagendando);
+
+        $data = $this->validate([
+            'fechaReagendar' => ['required', 'date'],
+            'modalidadReagendar' => ['nullable', 'string', 'max:50'],
+            'lugarReagendar' => ['nullable', 'string', 'max:150'],
+        ], [], [
+            'fechaReagendar' => 'fecha',
+        ]);
+
+        if ($this->hayConflictoDeHorario($data['fechaReagendar'], excluirCapacitacionId: $capacitacion->id)) {
+            $this->addError('fechaReagendar', 'Ya tienes otra inducción agendada a menos de 30 minutos de esa hora.');
+
+            return;
+        }
+
+        $capacitacion->update([
+            'fecha' => $data['fechaReagendar'],
+            'modalidad' => $data['modalidadReagendar'] ?: null,
+            'lugar' => $data['lugarReagendar'] ?: null,
+        ]);
+
+        // Agregar colaboradores olvidados, sin tocar a los que ya estaban
+        // (sus filas de asistencia existentes -- si las hubiera -- se
+        // mantienen intactas). Misma revalidación que agendarInduccion: solo
+        // quien ya leyó el módulo y no tiene inducción en ninguna otra
+        // sesión de este módulo.
+        if (! empty($this->seleccionadosParaAgregar)) {
+            $yaTienenInduccion = CapacitacionAsistente::whereIn('user_id', $this->seleccionadosParaAgregar)
+                ->whereHas('capacitacion', fn ($q) => $q->where('modulo_id', $this->modulo->id))
+                ->pluck('user_id')
+                ->all();
+
+            $idsValidos = ModuloLectura::where('modulo_id', $this->modulo->id)
+                ->whereIn('user_id', $this->seleccionadosParaAgregar)
+                ->whereNotNull('leido_at')
+                ->pluck('user_id')
+                ->reject(fn ($id) => in_array($id, $yaTienenInduccion))
+                ->all();
+
+            foreach ($idsValidos as $userId) {
+                $capacitacion->asistentes()->create(['user_id' => $userId]);
+            }
+        }
+
+        $this->reset(['capacitacionReagendando', 'fechaReagendar', 'modalidadReagendar', 'lugarReagendar', 'seleccionadosParaAgregar']);
+        $this->dispatch('close-modal', 'reagendar-induccion');
+        session()->flash('success', 'Inducción reagendada.');
+    }
+
+    public function eliminarInduccion(): void
+    {
+        // Mismo candado que reagendar: si ya se subió el acta, la sesión ya
+        // se dio por concluida y no se puede borrar desde acá. El borrado
+        // se lleva de paso, por la cascada de la FK, a sus filas de
+        // capacitacion_asistentes -- así quienes estaban invitados quedan
+        // libres para que se les agende una inducción nueva.
+        $capacitacion = Capacitacion::where('modulo_id', $this->modulo->id)
+            ->whereNull('acta_path')
+            ->findOrFail($this->capacitacionReagendando);
+
+        $capacitacion->delete();
+
+        $this->reset(['capacitacionReagendando', 'fechaReagendar', 'modalidadReagendar', 'lugarReagendar', 'seleccionadosParaAgregar']);
+        $this->dispatch('close-modal', 'reagendar-induccion');
+        session()->flash('success', 'Inducción eliminada.');
     }
 
     public function render()
@@ -231,9 +374,22 @@ class Seguimiento extends Component
             ->orderByDesc('fecha')
             ->get();
 
+        // Para el modal de reagendar: a quién se puede agregar todavía --
+        // mismo criterio que habilita el checkbox en la tabla principal
+        // (leyó el módulo, sin inducción agendada en ninguna sesión de él).
+        $candidatosParaAgregar = User::query()
+            ->orderBy('name')
+            ->whereHas('moduloLecturas', fn ($q) => $q
+                ->where('modulo_id', $this->modulo->id)
+                ->whereNotNull('leido_at'))
+            ->whereDoesntHave('capacitacionAsistencias', fn ($q) => $q
+                ->whereHas('capacitacion', fn ($q2) => $q2->where('modulo_id', $this->modulo->id)))
+            ->get();
+
         return view('livewire.modulos.seguimiento', [
             'filas' => $filas,
             'capacitaciones' => $capacitaciones,
+            'candidatosParaAgregar' => $candidatosParaAgregar,
         ]);
     }
 }

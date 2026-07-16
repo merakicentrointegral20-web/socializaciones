@@ -71,6 +71,22 @@ Route::get('modulos/{modulo}/capacitaciones/{capacitacion}/acta', function (Modu
     return Storage::disk('local')->response($capacitacion->acta_path);
 })->middleware(['auth', 'verified'])->name('capacitaciones.acta');
 
+// Acta de asistencia en blanco (Nombre y Apellido / Cédula / Firma) para
+// imprimir antes de la sesión y recoger firmas a mano -- se genera al vuelo,
+// nunca se guarda en disco (el acta "real" es la escaneada que se sube en
+// capacitaciones.acta arriba).
+Route::get('modulos/{modulo}/capacitaciones/{capacitacion}/acta/imprimir', function (Modulo $modulo, \App\Models\Capacitacion $capacitacion) {
+    abort_unless($modulo->created_by === auth()->id(), 403);
+    abort_unless($capacitacion->modulo_id === $modulo->id, 404);
+
+    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.acta-induccion', [
+        'capacitacion' => $capacitacion->load('modulo', 'instructor'),
+        'asistentes' => $capacitacion->asistentes()->with('user')->get()->sortBy(fn ($a) => $a->user->name)->values(),
+    ])->setPaper('a4', 'portrait');
+
+    return $pdf->stream("acta-induccion-{$capacitacion->id}.pdf");
+})->middleware(['auth', 'verified'])->name('capacitaciones.acta-imprimir');
+
 Route::get('mis-modulos', MisModulosIndex::class)
     ->middleware(['auth', 'verified', 'elevated.2fa'])
     ->name('mis-modulos.index');
