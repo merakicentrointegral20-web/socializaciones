@@ -9,6 +9,7 @@ class ColaboradorContacto extends Model
 {
     protected $fillable = [
         'user_id',
+        'cedula',
         'telefono',
         'cargo',
     ];

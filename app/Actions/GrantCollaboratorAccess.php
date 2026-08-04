@@ -38,9 +38,14 @@ class GrantCollaboratorAccess
     ];
 
     /**
+     * $email/$password explícitos son para el import masivo por archivo de
+     * activación (colaboradores.plantilla-activacion): RRHH ya decidió esas
+     * credenciales fuera del sistema y solo quiere que se creen tal cual.
+     * Sin esos parámetros, se comporta igual que siempre (autogenera ambos).
+     *
      * @return array{user: User, email: string, password: string}
      */
-    public function forCollaborator(Collaborator $collaborator, ?string $role = null): array
+    public function forCollaborator(Collaborator $collaborator, ?string $role = null, ?string $email = null, ?string $password = null): array
     {
         if ($collaborator->user_id) {
             throw new RuntimeException(
@@ -48,8 +53,12 @@ class GrantCollaboratorAccess
             );
         }
 
-        return DB::transaction(function () use ($collaborator, $role) {
-            $created = $this->createUser($collaborator->fullName(), $role);
+        if ($email && User::where('email', $email)->exists()) {
+            throw new RuntimeException("El correo {$email} ya está en uso por otra cuenta.");
+        }
+
+        return DB::transaction(function () use ($collaborator, $role, $email, $password) {
+            $created = $this->createUser($collaborator->fullName(), $role, $email, $password);
 
             $collaborator->update(['user_id' => $created['user']->id]);
 
@@ -110,6 +119,11 @@ class GrantCollaboratorAccess
             ColaboradorContacto::updateOrCreate(
                 ['user_id' => $created['user']->id],
                 [
+                    // Para producción la cédula ya vive en collaborators.id_card,
+                    // pero la guardamos acá también -- es la única forma de
+                    // detectar un re-import duplicado sin tener que consultar
+                    // dos tablas distintas según el área de la persona.
+                    'cedula' => $cedula ?: null,
                     'telefono' => $telefono ?: null,
                     'cargo' => $area === 'produccion' ? $funcionProduccion : $cargoAdministracion,
                 ]
@@ -171,12 +185,12 @@ class GrantCollaboratorAccess
     /**
      * @return array{user: User, email: string, password: string}
      */
-    private function createUser(string $fullName, ?string $role): array
+    private function createUser(string $fullName, ?string $role, ?string $email = null, ?string $password = null): array
     {
         [$firstName, $lastName] = array_pad(explode(' ', trim($fullName), 2), 2, '');
 
-        $email = $this->generateEmail($firstName, $lastName);
-        $password = $this->generatePassword();
+        $email ??= $this->generateEmail($firstName, $lastName);
+        $password ??= $this->generatePassword();
 
         $user = User::create([
             'name' => $fullName,

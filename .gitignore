@@ -11,6 +11,12 @@
 /.phpunit.cache
 /.vscode
 /.zed
+
+# Skill de diseño instalado localmente (referencia externa, no código de la
+# app) -- ver .claude/skills/ui-ux-pro-max/SKILL.md. No debe ir al repo.
+/.claude/skills/ui-ux-pro-max
+__pycache__/
+*.pyc
 /auth.json
 /node_modules
 /public/build

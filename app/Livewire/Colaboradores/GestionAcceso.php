@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 use RuntimeException;
 
@@ -16,6 +17,7 @@ use RuntimeException;
 class GestionAcceso extends Component
 {
     use WithPagination;
+    use WithFileUploads;
 
     public string $search = '';
 
@@ -41,8 +43,10 @@ class GestionAcceso extends Component
 
     public bool $newAsInstructor = false;
 
-    // ─── Editar celular/cargo de alguien que ya tiene cuenta ───────────────
+    // ─── Editar celular/cargo/cédula de alguien que ya tiene cuenta ────────
     public ?int $editingContactId = null;
+
+    public string $editCedula = '';
 
     public string $editTelefono = '';
 
@@ -51,6 +55,33 @@ class GestionAcceso extends Component
     // ─── Confirmación antes de asignar/quitar rol o permiso ───────────────
     /** @var array{type: string, userId: int, userName: string, willActivate: bool}|null */
     public ?array $confirmingToggle = null;
+
+    // ─── Activación masiva por CSV: cedula, email, password, activo ───────
+    // Es el ÚNICO camino masivo que crea cuentas -- separado a propósito del
+    // de actualización de abajo, para no mezclar "estoy dando de alta" con
+    // "estoy corrigiendo un dato" en el mismo archivo.
+    public bool $showActivationForm = false;
+
+    public $activationFile = null;
+
+    /** @var array{activados: int, omitidos: int, errores: array<int, string>}|null */
+    public ?array $activationSummary = null;
+
+    public const REQUIRED_ACTIVATION_COLUMNS = ['cedula', 'email', 'password', 'activo'];
+
+    // ─── Actualización masiva por CSV: solo celular/cargo/cédula ──────────
+    // Nunca crea ni activa cuentas -- solo toca colaborador_contactos, que es
+    // 100% de xr-rrhh. Nombre/correo/función quedan de solo lectura porque
+    // el usuario de BD no tiene permiso de UPDATE sobre esas columnas de
+    // xuri-apex (ver database/mysql-app-user.sql).
+    public bool $showUpdateForm = false;
+
+    public $updateFile = null;
+
+    /** @var array{actualizados: int, errores: array<int, string>}|null */
+    public ?array $updateSummary = null;
+
+    public const REQUIRED_UPDATE_COLUMNS = ['cedula'];
 
     public function updatingSearch(): void
     {
@@ -146,9 +177,11 @@ class GestionAcceso extends Component
 
     public function openEditContact(int $userId): void
     {
+        $user = User::with('collaborator')->findOrFail($userId);
         $contacto = ColaboradorContacto::where('user_id', $userId)->first();
 
         $this->editingContactId = $userId;
+        $this->editCedula = $contacto?->cedula ?? $user->collaborator?->id_card ?? '';
         $this->editTelefono = $contacto?->telefono ?? '';
         $this->editCargo = $contacto?->cargo ?? '';
         $this->resetValidation();
@@ -157,7 +190,7 @@ class GestionAcceso extends Component
 
     public function cancelEditContact(): void
     {
-        $this->reset(['editingContactId', 'editTelefono', 'editCargo']);
+        $this->reset(['editingContactId', 'editCedula', 'editTelefono', 'editCargo']);
         $this->resetValidation();
         $this->dispatch('close-modal', 'edit-contact');
     }
@@ -165,19 +198,220 @@ class GestionAcceso extends Component
     public function saveContact(): void
     {
         $data = $this->validate([
+            'editCedula' => ['nullable', 'string', 'max:20', 'unique:colaborador_contactos,cedula,'.$this->editingContactId.',user_id'],
             'editTelefono' => ['nullable', 'regex:/^[0-9]{10}$/'],
             'editCargo' => ['nullable', 'string', 'max:100'],
         ], [
             'editTelefono.regex' => 'El celular debe tener 10 dígitos (ej. 0991234567).',
+            'editCedula.unique' => 'Esa cédula ya está registrada en otra cuenta.',
+        ], [
+            'editCedula' => 'cédula',
         ]);
 
         ColaboradorContacto::updateOrCreate(
             ['user_id' => $this->editingContactId],
-            ['telefono' => $data['editTelefono'] ?: null, 'cargo' => $data['editCargo'] ?: null]
+            ['cedula' => $data['editCedula'] ?: null, 'telefono' => $data['editTelefono'] ?: null, 'cargo' => $data['editCargo'] ?: null]
         );
 
         session()->flash('success', 'Datos de contacto actualizados.');
         $this->cancelEditContact();
+    }
+
+    public function toggleActivationForm(): void
+    {
+        $this->showActivationForm = ! $this->showActivationForm;
+        $this->reset(['activationFile', 'activationSummary']);
+        $this->resetValidation();
+    }
+
+    /**
+     * Importa desde colaboradores.plantilla-activacion (columnas: cedula,
+     * email, password, activo -- nombre viaja de referencia y se ignora).
+     * Es el ÚNICO camino masivo que crea cuentas. Por fila:
+     *  - activo != "si": se omite sin error -- así se puede tener a todo el
+     *    mundo en el archivo y activar solo a quien corresponda hoy.
+     *  - la cédula coincide con alguien de "Sin cuenta todavía": se activa
+     *    con el email/password EXACTOS del archivo (no se autogeneran) vía
+     *    GrantCollaboratorAccess::forCollaborator, igual que el botón
+     *    "Activar acceso".
+     *  - la cédula ya tiene cuenta (activada en una corrida anterior): se
+     *    omite sin error -- resubir el mismo archivo no la duplica ni le
+     *    cambia el email/password.
+     *  - la cédula no coincide con nadie: error de fila.
+     */
+    public function importActivacion(GrantCollaboratorAccess $grantAccess): void
+    {
+        $this->validate([
+            'activationFile' => ['required', 'file', 'mimes:csv,txt', 'max:2048'],
+        ], [], ['activationFile' => 'archivo']);
+
+        $handle = fopen($this->activationFile->getRealPath(), 'r');
+        $header = fgetcsv($handle) ?: [];
+        $header[0] = isset($header[0]) ? preg_replace('/^\xEF\xBB\xBF/', '', $header[0]) : '';
+        $header = array_map('trim', $header);
+
+        $faltantes = array_diff(self::REQUIRED_ACTIVATION_COLUMNS, $header);
+
+        if ($faltantes) {
+            fclose($handle);
+            session()->flash('error', 'Al archivo de activación le faltan estas columnas: '.implode(', ', $faltantes).'. Descarga primero la plantilla de activación.');
+
+            return;
+        }
+
+        $activados = 0;
+        $omitidos = 0;
+        $errores = [];
+        $numeroFila = 1;
+        $numColumnas = count($header);
+
+        while (($row = fgetcsv($handle)) !== false) {
+            $numeroFila++;
+
+            if (count(array_filter($row, fn ($v) => trim((string) $v) !== '')) === 0) {
+                continue;
+            }
+
+            $row = array_slice(array_pad($row, $numColumnas, ''), 0, $numColumnas);
+            $data = array_map('trim', array_combine($header, $row));
+
+            if (! in_array(strtolower($data['activo']), ['si', 'sí', '1', 'true', 'x'], true)) {
+                $omitidos++;
+
+                continue;
+            }
+
+            $cedula = $data['cedula'] ?: null;
+            $email = $data['email'] !== '' ? strtolower($data['email']) : null;
+            $password = $data['password'] !== '' ? $data['password'] : null;
+
+            try {
+                if (! $cedula) {
+                    throw new RuntimeException('falta la cédula.');
+                }
+
+                $pendiente = Collaborator::whereNull('user_id')->where('id_card', $cedula)->first();
+
+                if (! $pendiente) {
+                    $yaActivada = Collaborator::where('id_card', $cedula)->whereNotNull('user_id')->exists()
+                        || ColaboradorContacto::where('cedula', $cedula)->exists();
+
+                    if ($yaActivada) {
+                        $omitidos++;
+
+                        continue;
+                    }
+
+                    throw new RuntimeException("la cédula {$cedula} no está entre los que aparecen \"sin cuenta todavía\".");
+                }
+
+                if (! $email || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    throw new RuntimeException('el email no es válido.');
+                }
+
+                if (! $password || strlen($password) < 8) {
+                    throw new RuntimeException('la contraseña debe tener al menos 8 caracteres.');
+                }
+
+                $result = $grantAccess->forCollaborator($pendiente, null, $email, $password);
+
+                ColaboradorContacto::updateOrCreate(
+                    ['user_id' => $result['user']->id],
+                    ['cedula' => $cedula]
+                );
+                $activados++;
+            } catch (\Throwable $e) {
+                $errores[] = "Fila {$numeroFila}: {$e->getMessage()}";
+            }
+        }
+
+        fclose($handle);
+
+        $this->activationSummary = compact('activados', 'omitidos', 'errores');
+        $this->reset(['activationFile']);
+    }
+
+    public function toggleUpdateForm(): void
+    {
+        $this->showUpdateForm = ! $this->showUpdateForm;
+        $this->reset(['updateFile', 'updateSummary']);
+        $this->resetValidation();
+    }
+
+    /**
+     * Importa desde colaboradores.plantilla-actualizacion (columnas: cedula,
+     * telefono, cargo -- nombre viaja de referencia y se ignora). Nunca crea
+     * ni activa cuentas -- solo actualiza colaborador_contactos de alguien
+     * que YA tiene cuenta, encontrado por cédula (única). Nombre/correo/
+     * función no se pueden editar: el usuario de BD no tiene permiso de
+     * UPDATE sobre esas columnas de xuri-apex (ver database/mysql-app-user.sql).
+     */
+    public function importActualizacion(): void
+    {
+        $this->validate([
+            'updateFile' => ['required', 'file', 'mimes:csv,txt', 'max:2048'],
+        ], [], ['updateFile' => 'archivo']);
+
+        $handle = fopen($this->updateFile->getRealPath(), 'r');
+        $header = fgetcsv($handle) ?: [];
+        $header[0] = isset($header[0]) ? preg_replace('/^\xEF\xBB\xBF/', '', $header[0]) : '';
+        $header = array_map('trim', $header);
+
+        $faltantes = array_diff(self::REQUIRED_UPDATE_COLUMNS, $header);
+
+        if ($faltantes) {
+            fclose($handle);
+            session()->flash('error', 'Al archivo de actualización le faltan estas columnas: '.implode(', ', $faltantes).'. Descarga primero la plantilla de actualización.');
+
+            return;
+        }
+
+        $actualizados = 0;
+        $errores = [];
+        $numeroFila = 1;
+        $numColumnas = count($header);
+
+        while (($row = fgetcsv($handle)) !== false) {
+            $numeroFila++;
+
+            if (count(array_filter($row, fn ($v) => trim((string) $v) !== '')) === 0) {
+                continue;
+            }
+
+            $row = array_slice(array_pad($row, $numColumnas, ''), 0, $numColumnas);
+            $data = array_map('trim', array_combine($header, $row));
+            $cedula = $data['cedula'] ?: null;
+
+            try {
+                if (! $cedula) {
+                    throw new RuntimeException('falta la cédula.');
+                }
+
+                $existente = Collaborator::where('id_card', $cedula)->whereNotNull('user_id')->first()?->user
+                    ?? ColaboradorContacto::where('cedula', $cedula)->first()?->user;
+
+                if (! $existente) {
+                    throw new RuntimeException("la cédula {$cedula} no coincide con nadie que ya tenga cuenta. Para crear/activar cuentas usa el archivo de activación.");
+                }
+
+                ColaboradorContacto::updateOrCreate(
+                    ['user_id' => $existente->id],
+                    [
+                        'cedula' => $cedula,
+                        'telefono' => ($data['telefono'] ?? '') !== '' ? $data['telefono'] : null,
+                        'cargo' => ($data['cargo'] ?? '') !== '' ? $data['cargo'] : null,
+                    ]
+                );
+                $actualizados++;
+            } catch (\Throwable $e) {
+                $errores[] = "Fila {$numeroFila}: {$e->getMessage()}";
+            }
+        }
+
+        fclose($handle);
+
+        $this->updateSummary = compact('actualizados', 'errores');
+        $this->reset(['updateFile']);
     }
 
     public function askToggleInstructor(int $userId): void
@@ -274,6 +508,11 @@ class GestionAcceso extends Component
             'instructorRole' => config('xr_rrhh.instructor_role'),
             'manageAccessPermission' => config('xr_rrhh.manage_access_permission'),
             'funcionesProduccion' => GrantCollaboratorAccess::FUNCIONES_PRODUCCION,
+            // Totales para las tarjetas de arriba -- sin el filtro de búsqueda,
+            // son el conteo real del sistema, no de la página actual.
+            'totalConCuenta' => User::count(),
+            'totalSinCuenta' => Collaborator::whereNull('user_id')->count(),
+            'totalInstructores' => User::role(config('xr_rrhh.instructor_role'))->count(),
         ]);
     }
 }
