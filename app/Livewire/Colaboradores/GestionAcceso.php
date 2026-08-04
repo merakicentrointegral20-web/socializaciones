@@ -26,6 +26,8 @@ class GestionAcceso extends Component
 
     public bool $activatingAsInstructor = false;
 
+    public string $activatingXuriApexRole = '';
+
     // ─── Alta de persona nueva (administración o producción) ──────────────
     public bool $showNewForm = false;
 
@@ -42,6 +44,8 @@ class GestionAcceso extends Component
     public string $newCargoAdministracion = '';
 
     public bool $newAsInstructor = false;
+
+    public string $newXuriApexRole = '';
 
     // ─── Editar celular/cargo/cédula de alguien que ya tiene cuenta ────────
     public ?int $editingContactId = null;
@@ -64,7 +68,7 @@ class GestionAcceso extends Component
 
     public $activationFile = null;
 
-    /** @var array{activados: int, omitidos: int, errores: array<int, string>}|null */
+    /** @var array{creados: int, activados: int, omitidos: int, errores: array<int, string>}|null */
     public ?array $activationSummary = null;
 
     public const REQUIRED_ACTIVATION_COLUMNS = ['cedula', 'email', 'password', 'activo'];
@@ -92,21 +96,26 @@ class GestionAcceso extends Component
     {
         $this->activatingId = $collaboratorId;
         $this->activatingAsInstructor = false;
+        $this->activatingXuriApexRole = '';
     }
 
     public function cancelActivate(): void
     {
         $this->activatingId = null;
         $this->activatingAsInstructor = false;
+        $this->activatingXuriApexRole = '';
     }
 
     public function confirmActivate(GrantCollaboratorAccess $grantAccess): void
     {
         $collaborator = Collaborator::findOrFail($this->activatingId);
-        $role = $this->activatingAsInstructor ? config('xr_rrhh.instructor_role') : null;
+        $roles = array_filter([
+            $this->activatingAsInstructor ? config('xr_rrhh.instructor_role') : null,
+            $this->activatingXuriApexRole ?: null,
+        ]);
 
         try {
-            $result = $grantAccess->forCollaborator($collaborator, $role);
+            $result = $grantAccess->forCollaborator($collaborator, $roles);
         } catch (RuntimeException $e) {
             session()->flash('error', $e->getMessage());
             $this->cancelActivate();
@@ -125,7 +134,7 @@ class GestionAcceso extends Component
     public function toggleNewForm(): void
     {
         $this->showNewForm = ! $this->showNewForm;
-        $this->reset(['newName', 'newCedula', 'newTelefono', 'newFuncionProduccion', 'newCargoAdministracion', 'newAsInstructor']);
+        $this->reset(['newName', 'newCedula', 'newTelefono', 'newFuncionProduccion', 'newCargoAdministracion', 'newAsInstructor', 'newXuriApexRole']);
         $this->newArea = 'administracion';
         $this->resetValidation();
     }
@@ -139,15 +148,20 @@ class GestionAcceso extends Component
             'newTelefono' => ['nullable', 'regex:/^[0-9]{10}$/'],
             'newFuncionProduccion' => [$this->newArea === 'produccion' ? 'required' : 'nullable', 'in:'.implode(',', GrantCollaboratorAccess::FUNCIONES_PRODUCCION)],
             'newCargoAdministracion' => [$this->newArea === 'administracion' ? 'nullable' : 'nullable', 'string', 'max:100'],
+            'newXuriApexRole' => ['nullable', 'in:'.implode(',', GrantCollaboratorAccess::xuriApexRoles())],
         ], [
             'newTelefono.regex' => 'El celular debe tener 10 dígitos (ej. 0991234567).',
         ], [
             'newName' => 'nombre',
             'newCedula' => 'cédula',
             'newFuncionProduccion' => 'función',
+            'newXuriApexRole' => 'rol en Xuri Apex',
         ]);
 
-        $role = $this->newAsInstructor ? config('xr_rrhh.instructor_role') : null;
+        $roles = array_filter([
+            $this->newAsInstructor ? config('xr_rrhh.instructor_role') : null,
+            $data['newXuriApexRole'] ?: null,
+        ]);
 
         try {
             $result = $grantAccess->forNuevoIngreso(
@@ -157,7 +171,7 @@ class GestionAcceso extends Component
                 telefono: $data['newTelefono'] ?: null,
                 funcionProduccion: $data['newFuncionProduccion'] ?: null,
                 cargoAdministracion: $data['newCargoAdministracion'] ?: null,
-                role: $role,
+                roles: $roles,
             );
         } catch (RuntimeException $e) {
             session()->flash('error', $e->getMessage());
@@ -225,11 +239,10 @@ class GestionAcceso extends Component
     }
 
     /**
-     * Importa desde colaboradores.plantilla-activacion (columnas: cedula,
-     * email, password, activo -- nombre viaja de referencia y se ignora).
-     * Es el ÚNICO camino masivo que crea cuentas. Por fila:
+     * Importa desde colaboradores.plantilla-activacion. Es el ÚNICO camino
+     * masivo que crea/activa cuentas. Por fila, en este orden:
      *  - activo != "si": se omite sin error -- así se puede tener a todo el
-     *    mundo en el archivo y activar solo a quien corresponda hoy.
+     *    mundo en el archivo y procesar solo a quien corresponda hoy.
      *  - la cédula coincide con alguien de "Sin cuenta todavía": se activa
      *    con el email/password EXACTOS del archivo (no se autogeneran) vía
      *    GrantCollaboratorAccess::forCollaborator, igual que el botón
@@ -237,7 +250,13 @@ class GestionAcceso extends Component
      *  - la cédula ya tiene cuenta (activada en una corrida anterior): se
      *    omite sin error -- resubir el mismo archivo no la duplica ni le
      *    cambia el email/password.
-     *  - la cédula no coincide con nadie: error de fila.
+     *  - la cédula no coincide con NADIE (ni pendiente ni ya activada):
+     *    persona totalmente nueva -- se crea desde cero vía
+     *    GrantCollaboratorAccess::forNuevoIngreso, igual que
+     *    "+ Agregar colaborador" pero en lote. Área por defecto
+     *    "administracion" si la columna viene vacía (el caso típico: gente
+     *    que Talento Humano necesita en el sistema pero que todavía no
+     *    participa en Xuri Apex).
      */
     public function importActivacion(GrantCollaboratorAccess $grantAccess): void
     {
@@ -259,6 +278,7 @@ class GestionAcceso extends Component
             return;
         }
 
+        $creados = 0;
         $activados = 0;
         $omitidos = 0;
         $errores = [];
@@ -290,21 +310,6 @@ class GestionAcceso extends Component
                     throw new RuntimeException('falta la cédula.');
                 }
 
-                $pendiente = Collaborator::whereNull('user_id')->where('id_card', $cedula)->first();
-
-                if (! $pendiente) {
-                    $yaActivada = Collaborator::where('id_card', $cedula)->whereNotNull('user_id')->exists()
-                        || ColaboradorContacto::where('cedula', $cedula)->exists();
-
-                    if ($yaActivada) {
-                        $omitidos++;
-
-                        continue;
-                    }
-
-                    throw new RuntimeException("la cédula {$cedula} no está entre los que aparecen \"sin cuenta todavía\".");
-                }
-
                 if (! $email || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
                     throw new RuntimeException('el email no es válido.');
                 }
@@ -313,13 +318,54 @@ class GestionAcceso extends Component
                     throw new RuntimeException('la contraseña debe tener al menos 8 caracteres.');
                 }
 
-                $result = $grantAccess->forCollaborator($pendiente, null, $email, $password);
+                $rolXuriApex = trim($data['rol_xuri_apex'] ?? '');
 
-                ColaboradorContacto::updateOrCreate(
-                    ['user_id' => $result['user']->id],
-                    ['cedula' => $cedula]
+                if ($rolXuriApex !== '' && ! in_array($rolXuriApex, GrantCollaboratorAccess::xuriApexRoles(), true)) {
+                    throw new RuntimeException("\"{$rolXuriApex}\" no es un rol válido de Xuri Apex.");
+                }
+
+                $roles = array_filter([$rolXuriApex ?: null]);
+                $pendiente = Collaborator::whereNull('user_id')->where('id_card', $cedula)->first();
+
+                if ($pendiente) {
+                    $result = $grantAccess->forCollaborator($pendiente, $roles, $email, $password);
+
+                    ColaboradorContacto::updateOrCreate(
+                        ['user_id' => $result['user']->id],
+                        ['cedula' => $cedula]
+                    );
+                    $activados++;
+
+                    continue;
+                }
+
+                $yaActivada = Collaborator::where('id_card', $cedula)->whereNotNull('user_id')->exists()
+                    || ColaboradorContacto::where('cedula', $cedula)->exists();
+
+                if ($yaActivada) {
+                    $omitidos++;
+
+                    continue;
+                }
+
+                if ($data['nombre'] === '') {
+                    throw new RuntimeException('falta el nombre (la cédula no coincide con nadie existente, así que hace falta el nombre para crearla).');
+                }
+
+                $area = ($data['area'] ?? '') === 'produccion' ? 'produccion' : 'administracion';
+
+                $grantAccess->forNuevoIngreso(
+                    fullName: $data['nombre'],
+                    area: $area,
+                    cedula: $cedula,
+                    telefono: ($data['telefono'] ?? '') ?: null,
+                    funcionProduccion: $area === 'produccion' ? ($data['funcion_cargo'] ?? null) : null,
+                    cargoAdministracion: $area === 'administracion' ? (($data['funcion_cargo'] ?? '') ?: null) : null,
+                    roles: $roles,
+                    email: $email,
+                    password: $password,
                 );
-                $activados++;
+                $creados++;
             } catch (\Throwable $e) {
                 $errores[] = "Fila {$numeroFila}: {$e->getMessage()}";
             }
@@ -327,7 +373,7 @@ class GestionAcceso extends Component
 
         fclose($handle);
 
-        $this->activationSummary = compact('activados', 'omitidos', 'errores');
+        $this->activationSummary = compact('creados', 'activados', 'omitidos', 'errores');
         $this->reset(['activationFile']);
     }
 
@@ -508,6 +554,8 @@ class GestionAcceso extends Component
             'instructorRole' => config('xr_rrhh.instructor_role'),
             'manageAccessPermission' => config('xr_rrhh.manage_access_permission'),
             'funcionesProduccion' => GrantCollaboratorAccess::FUNCIONES_PRODUCCION,
+            'xuriApexRoles' => GrantCollaboratorAccess::xuriApexRoles(),
+            'xuriApexRoleLabels' => GrantCollaboratorAccess::XURI_APEX_ROLE_LABELS,
             // Totales para las tarjetas de arriba -- sin el filtro de búsqueda,
             // son el conteo real del sistema, no de la página actual.
             'totalConCuenta' => User::count(),

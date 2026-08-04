@@ -98,27 +98,36 @@ Route::get('colaboradores/exportar', function () {
     }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
 })->middleware(['auth', 'verified', 'elevated.2fa', 'can:colaboradores.gestionar'])->name('colaboradores.exportar');
 
-// Plantilla de ACTIVACIÓN -- lo único que crea cuentas. Trae a todos los de
-// "Sin cuenta todavía" (nombre solo de referencia, no se usa al importar) y
-// deja email/password/activo en blanco para que RRHH los decida. Solo la
-// fila con activo=si se procesa -- así se puede preparar la lista completa
-// y activar de a poco sin re-descargar nada; GestionAcceso::importActivacion
-// vuelve a detectar por cédula, así que una fila ya activada nunca duplica
-// ni regenera su cuenta si se resube el mismo archivo.
+// Plantilla de ACTIVACIÓN -- el único camino masivo que crea/activa cuentas.
+// Trae a todos los de "Sin cuenta todavía" ya con área/cédula/función
+// llenas (nombre y esas tres columnas solo de referencia para las filas
+// pre-llenadas, GestionAcceso::importActivacion las ignora y usa las
+// reales de collaborators) y deja email/password/rol/activo en blanco para
+// que RRHH los decida. Solo la fila con activo=si se procesa -- así se
+// puede preparar la lista completa y activar de a poco sin re-descargar
+// nada. Además de las filas pre-llenadas, se pueden agregar filas nuevas a
+// mano para gente que ni siquiera existe todavía en collaborators (ej.
+// altas de administración): basta con poner nombre, cédula, área
+// ("administracion" si se deja vacío) y el resto de columnas -- se crean
+// desde cero, igual que "+ Agregar colaborador" pero en lote. Se identifica
+// todo por cédula, así que resubir el mismo archivo nunca duplica ni
+// regenera contraseñas de quien ya tiene cuenta.
 Route::get('colaboradores/plantilla-activacion', function () {
     return response()->streamDownload(function () {
         $out = fopen('php://output', 'w');
         fwrite($out, "\xEF\xBB\xBF");
-        fputcsv($out, ['nombre', 'cedula', 'email', 'password', 'activo']);
+        fputcsv($out, ['nombre', 'cedula', 'area', 'funcion_cargo', 'telefono', 'email', 'password', 'rol_xuri_apex', 'activo']);
 
         \App\Models\Collaborator::query()
             ->whereNull('user_id')
             ->orderBy('last_name')
             ->chunk(200, function ($pendientes) use ($out) {
                 foreach ($pendientes as $collaborator) {
-                    fputcsv($out, [$collaborator->fullName(), $collaborator->id_card ?? '', '', '', 'no']);
+                    fputcsv($out, [$collaborator->fullName(), $collaborator->id_card ?? '', 'produccion', $collaborator->function ?? '', '', '', '', '', 'no']);
                 }
             });
+
+        fputcsv($out, ['EJEMPLO Ana Torres (borra esta fila, es solo para altas nuevas que ni siquiera están en Sin cuenta)', '0102030405', 'administracion', 'Analista de RRHH', '0991234567', '', '', '', 'no']);
 
         fclose($out);
     }, 'plantilla-activacion.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);

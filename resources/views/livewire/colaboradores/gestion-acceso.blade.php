@@ -66,7 +66,7 @@
                         class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg font-semibold text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 transition ease-in-out duration-150 {{ $showActivationForm ? 'bg-brand-700 text-white ring-2 ring-brand-500 ring-offset-2' : 'bg-brand-600 text-white hover:bg-brand-700 focus:ring-brand-500' }}"
                     >
                         <x-icon-key class="h-4 w-4" />
-                        {{ $showActivationForm ? 'Cerrar' : 'Activar cuentas' }}
+                        {{ $showActivationForm ? 'Cerrar' : 'Asignar cuentas' }}
                     </button>
                     <button
                         type="button"
@@ -87,14 +87,25 @@
                             <x-icon-key class="h-4 w-4" />
                         </span>
                         <div>
-                            <h3 class="font-semibold text-gray-900">Activar cuentas</h3>
+                            <h3 class="font-semibold text-gray-900">Asignar cuentas</h3>
                             <p class="text-xs text-gray-600 mt-1 max-w-2xl">
-                                Solo para gente <strong>sin cuenta todavía</strong>. Descarga la
+                                Para gente <strong>sin cuenta todavía</strong> — ya sea que aparezca en "Sin cuenta todavía" o que sea completamente nueva. Tú eliges el
+                                correo y la contraseña de cada persona. Descarga la
                                 <a href="{{ route('colaboradores.plantilla-activacion') }}" class="text-brand-700 font-medium hover:underline">plantilla de activación</a>
-                                — ya trae a todos con su cédula — completa <code class="text-[11px] bg-white px-1 py-0.5 rounded border border-brand-200">email</code>,
+                                — ya trae a todos los pendientes con su cédula/área/función — completa <code class="text-[11px] bg-white px-1 py-0.5 rounded border border-brand-200">email</code>,
                                 <code class="text-[11px] bg-white px-1 py-0.5 rounded border border-brand-200">password</code> y marca
-                                <code class="text-[11px] bg-white px-1 py-0.5 rounded border border-brand-200">activo = si</code> solo en quienes quieras activar hoy, y súbela.
-                                Se identifica por cédula: si subes el mismo archivo dos veces, no se duplica ni se le cambia la contraseña a quien ya se activó.
+                                <code class="text-[11px] bg-white px-1 py-0.5 rounded border border-brand-200">activo = si</code> solo en quienes quieras asignarles cuenta hoy, y súbela.
+                                Se identifica por cédula: si subes el mismo archivo dos veces, no se duplica ni se le cambia la contraseña a quien ya tiene cuenta asignada.
+                            </p>
+                            <p class="text-xs text-gray-600 mt-2 max-w-2xl">
+                                ¿Persona completamente nueva (ni siquiera en "Sin cuenta todavía")? Agrega una fila con nombre, cédula y
+                                <code class="text-[11px] bg-white px-1 py-0.5 rounded border border-brand-200">area</code> = <code class="text-[11px] bg-white px-1 py-0.5 rounded border border-brand-200">administracion</code>
+                                o <code class="text-[11px] bg-white px-1 py-0.5 rounded border border-brand-200">produccion</code> (vacío = administración) — se crea desde cero, igual que "+ Agregar colaborador".
+                            </p>
+                            <p class="text-xs text-gray-600 mt-2 max-w-2xl">
+                                La columna <code class="text-[11px] bg-white px-1 py-0.5 rounded border border-brand-200">rol_xuri_apex</code> es opcional: sin un rol ahí
+                                (usa el nombre técnico: {{ implode(', ', array_slice($xuriApexRoles, 0, 4)) }}...), la persona puede loguearse en Xuri Apex pero no va a poder
+                                usar ningún panel — normal para altas de administración que todavía no participan allá.
                             </p>
                         </div>
                     </div>
@@ -105,7 +116,7 @@
                             <x-input-error :messages="$errors->get('activationFile')" class="mt-1" />
                         </div>
                         <x-primary-button wire:click="importActivacion" wire:loading.attr="disabled" wire:target="importActivacion,activationFile">
-                            Activar
+                            Asignar
                         </x-primary-button>
                         <span wire:loading wire:target="activationFile" class="text-xs text-gray-400">Subiendo...</span>
                     </div>
@@ -113,8 +124,9 @@
                     @if ($activationSummary)
                         <div class="ml-12 rounded-xl border border-brand-200 bg-white p-4 text-sm space-y-2">
                             <p class="text-gray-700">
+                                <strong>{{ $activationSummary['creados'] }}</strong> cuenta(s) nueva(s) creada(s) ·
                                 <strong>{{ $activationSummary['activados'] }}</strong> cuenta(s) activada(s) ·
-                                <strong>{{ $activationSummary['omitidos'] }}</strong> omitida(s) (activo=no o ya activada)
+                                <strong>{{ $activationSummary['omitidos'] }}</strong> omitida(s) (activo=no o ya tenía cuenta)
                                 @if (count($activationSummary['errores']))
                                     · <strong class="text-red-700">{{ count($activationSummary['errores']) }}</strong> error(es)
                                 @endif
@@ -249,6 +261,18 @@
                                 </div>
                             @endif
 
+                            <div>
+                                <x-input-label for="newXuriApexRole" value="Rol en Xuri Apex (opcional)" />
+                                <select wire:model="newXuriApexRole" id="newXuriApexRole" class="w-48 rounded-lg border-gray-300 text-sm focus:border-brand-500 focus:ring-brand-500">
+                                    <option value="">Ninguno</option>
+                                    @foreach ($xuriApexRoles as $rol)
+                                        <option value="{{ $rol }}">{{ $xuriApexRoleLabels[$rol] ?? $rol }}</option>
+                                    @endforeach
+                                </select>
+                                <x-input-error :messages="$errors->get('newXuriApexRole')" class="mt-1" />
+                                <p class="text-[11px] text-gray-400 mt-1 max-w-[12rem]">Sin esto puede loguearse en Xuri Apex pero no ve ningún panel.</p>
+                            </div>
+
                             <label class="inline-flex items-center gap-2 text-sm text-gray-600 pb-2">
                                 <input type="checkbox" wire:model="newAsInstructor" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
                                 Es instructor
@@ -336,9 +360,9 @@
                     <div class="p-5 border-b border-amber-100 bg-amber-50/50">
                         <h3 class="font-medium text-gray-900">Sin cuenta todavía <span class="text-amber-600 font-normal">({{ $totalSinCuenta }})</span></h3>
                         <p class="text-xs text-gray-500 mt-1">
-                            Colaboradores de bodega/CEDI que aún no tienen acceso al portal. Activa a todos de una vez con
-                            <button type="button" wire:click="toggleActivationForm" class="text-brand-600 font-medium hover:underline">Activar cuentas</button>,
-                            o uno por uno acá abajo.
+                            Colaboradores de bodega/CEDI que aún no tienen acceso al portal. Asígnales cuenta a todos de una vez con
+                            <button type="button" wire:click="toggleActivationForm" class="text-brand-600 font-medium hover:underline">Asignar cuentas</button>,
+                            o uno por uno acá abajo con "Activar acceso" (esta genera el correo/contraseña automático).
                         </p>
                     </div>
 
@@ -365,6 +389,12 @@
                                         <td class="px-6 py-4 align-middle text-right border-b border-amber-100">
                                             @if ($activatingId === $collaborator->id)
                                                 <div class="flex items-center justify-end gap-3 flex-wrap">
+                                                    <select wire:model="activatingXuriApexRole" class="rounded-lg border-gray-300 text-xs py-1.5 focus:border-brand-500 focus:ring-brand-500">
+                                                        <option value="">Sin rol Xuri Apex</option>
+                                                        @foreach ($xuriApexRoles as $rol)
+                                                            <option value="{{ $rol }}">{{ $xuriApexRoleLabels[$rol] ?? $rol }}</option>
+                                                        @endforeach
+                                                    </select>
                                                     <label class="inline-flex items-center gap-2 text-xs text-gray-600">
                                                         <input type="checkbox" wire:model="activatingAsInstructor" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
                                                         Instructor
