@@ -86,7 +86,7 @@
                                     ."Su participación es muy importante para su desarrollo profesional y para el cumplimiento de nuestras normativas internas, por lo que le invitamos a completarla(s) a la brevedad posible.\n\n"
                                     ."Quedamos atentos ante cualquier consulta.\n\n"
                                     ."Saludos cordiales,\nRecursos Humanos - XURI S.A.";
-                                $telefonoWhatsapp = $fila->user->contacto?->telefonoWhatsapp();
+                                $telefonoWhatsapp = $fila->user->telefonoWhatsapp();
                             @endphp
                             <div class="flex items-center gap-3 shrink-0">
                                 @if ($telefonoWhatsapp)
@@ -97,13 +97,9 @@
                                     >
                                         WhatsApp →
                                     </a>
+                                @else
+                                    <span class="text-xs text-gray-300">Sin celular</span>
                                 @endif
-                                <a
-                                    href="mailto:{{ $fila->user->email }}?subject={{ rawurlencode('Recordatorio de capacitaciones pendientes - RRHH XURI S.A.') }}&body={{ rawurlencode($mensaje) }}"
-                                    class="text-xs font-medium text-brand-600 hover:text-brand-800"
-                                >
-                                    Correo →
-                                </a>
                             </div>
                         </div>
                     @empty

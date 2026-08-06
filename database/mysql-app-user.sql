@@ -17,6 +17,10 @@ CREATE USER IF NOT EXISTS 'xr_rrhh_app'@'localhost' IDENTIFIED BY ':password';
 -- flujo de alta de acceso (paso 5, regla de identidad única), que necesita
 -- crear la cuenta nueva y enlazar el colaborador — por eso los permisos de
 -- escritura de abajo están recortados a columna, no a la tabla completa.
+-- SELECT es de tabla completa (no por columna), así que columnas que
+-- xuri-apex agregue después a `users` (ej. id_card, is_active) ya quedan
+-- legibles acá sin tocar este archivo -- solo escribir columna nueva sí
+-- requiere un GRANT nuevo.
 GRANT SELECT ON xuri_apex.users TO 'xr_rrhh_app'@'127.0.0.1', 'xr_rrhh_app'@'localhost';
 GRANT SELECT ON xuri_apex.collaborators TO 'xr_rrhh_app'@'127.0.0.1', 'xr_rrhh_app'@'localhost';
 GRANT SELECT ON xuri_apex.roles TO 'xr_rrhh_app'@'127.0.0.1', 'xr_rrhh_app'@'localhost';

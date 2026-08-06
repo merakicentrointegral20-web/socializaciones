@@ -30,7 +30,12 @@ class LoginForm extends Form
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only(['email', 'password']), $this->remember)) {
+        // is_active vive en la tabla compartida `users` (columna agregada por
+        // xuri-apex) -- meterla en las credenciales de attempt() hace que una
+        // cuenta desactivada allá falle el login acá con el mismo mensaje
+        // genérico que una contraseña incorrecta, sin necesidad de una
+        // consulta aparte ni de filtrar por qué falló.
+        if (! Auth::attempt([...$this->only(['email', 'password']), 'is_active' => true], $this->remember)) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([

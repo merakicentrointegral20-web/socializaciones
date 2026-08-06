@@ -51,17 +51,13 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
     }
 
     public function collaborator(): HasOne
     {
         return $this->hasOne(Collaborator::class);
-    }
-
-    public function contacto(): HasOne
-    {
-        return $this->hasOne(ColaboradorContacto::class);
     }
 
     // A dónde va cada quien apenas entra: quien puede crear módulos ve el
@@ -95,5 +91,26 @@ class User extends Authenticatable
     public function capacitacionAsistencias(): HasMany
     {
         return $this->hasMany(CapacitacionAsistente::class);
+    }
+
+    /**
+     * Número en formato internacional para links wa.me (sin "+", sin
+     * espacios ni guiones). Asume Ecuador si viene en formato local
+     * (empieza con 0): "0991234567" -> "593991234567". `phone` es columna
+     * de xuri-apex (users.phone), no de xr-rrhh.
+     */
+    public function telefonoWhatsapp(): ?string
+    {
+        if (! $this->phone) {
+            return null;
+        }
+
+        $digitos = preg_replace('/\D/', '', $this->phone);
+
+        if (str_starts_with($digitos, '0')) {
+            $digitos = '593'.substr($digitos, 1);
+        }
+
+        return $digitos ?: null;
     }
 }

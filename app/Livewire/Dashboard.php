@@ -48,7 +48,6 @@ class Dashboard extends Component
             ->map(fn ($rows) => $rows->pluck('modulo_id')->all());
 
         $personasConPendientes = User::orderBy('name')
-            ->with('contacto')
             ->get()
             ->map(function (User $user) use ($modulos, $certificadosPorUsuario) {
                 $completados = $certificadosPorUsuario->get($user->id, []);

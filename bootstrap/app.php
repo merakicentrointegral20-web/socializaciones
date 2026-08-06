@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureTwoFactorForElevatedRoles;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -15,6 +16,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'elevated.2fa' => EnsureTwoFactorForElevatedRoles::class,
         ]);
+
+        // Global en vez de por-ruta: así cubre también rutas nuevas que se
+        // agreguen después sin acordarse de repetir el middleware ahí.
+        $middleware->web(append: [EnsureAccountIsActive::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
