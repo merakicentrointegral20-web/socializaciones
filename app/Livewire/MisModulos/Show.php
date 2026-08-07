@@ -77,7 +77,6 @@ class Show extends Component
         return view('livewire.mis-modulos.show', [
             'imagenes' => $obligatorios->filter(fn ($archivo) => $archivo->esImagen()),
             'documentos' => $obligatorios->reject(fn ($archivo) => $archivo->esImagen()),
-            'materialApoyo' => $archivos->filter->esApoyo(),
         ]);
     }
 }
