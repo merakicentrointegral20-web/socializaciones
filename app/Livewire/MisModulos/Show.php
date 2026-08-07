@@ -17,6 +17,8 @@ class Show extends Component
 
     public bool $yaLeido = false;
 
+    public bool $documentoAbierto = false;
+
     public ?CapacitacionAsistente $induccion = null;
 
     public bool $asistioInduccion = false;
@@ -30,10 +32,13 @@ class Show extends Component
         abort_unless($modulo->activo, 404);
 
         $this->modulo = $modulo;
-        $this->yaLeido = ModuloLectura::where('modulo_id', $modulo->id)
+
+        $lectura = ModuloLectura::where('modulo_id', $modulo->id)
             ->where('user_id', auth()->id())
-            ->whereNotNull('leido_at')
-            ->exists();
+            ->first();
+
+        $this->yaLeido = (bool) $lectura?->leido_at;
+        $this->documentoAbierto = (bool) $lectura?->documento_abierto_at;
 
         $this->induccion = CapacitacionAsistente::query()
             ->where('user_id', auth()->id())
@@ -58,6 +63,16 @@ class Show extends Component
             ->first();
     }
 
+    public function abrirDocumento(): void
+    {
+        $this->documentoAbierto = true;
+
+        ModuloLectura::updateOrCreate(
+            ['modulo_id' => $this->modulo->id, 'user_id' => auth()->id()],
+            ['documento_abierto_at' => now()]
+        );
+    }
+
     public function marcarLeido(): void
     {
         ModuloLectura::updateOrCreate(
@@ -74,9 +89,12 @@ class Show extends Component
         $archivos = $this->modulo->archivos()->get();
         $obligatorios = $archivos->reject->esApoyo();
 
+        $documentos = $obligatorios->reject(fn ($archivo) => $archivo->esImagen());
+
         return view('livewire.mis-modulos.show', [
             'imagenes' => $obligatorios->filter(fn ($archivo) => $archivo->esImagen()),
-            'documentos' => $obligatorios->reject(fn ($archivo) => $archivo->esImagen()),
+            'documentos' => $documentos,
+            'requiereAbrirDocumento' => $documentos->isNotEmpty(),
         ]);
     }
 }

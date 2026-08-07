@@ -78,7 +78,12 @@
                     </div>
                     <div class="divide-y divide-gray-50">
                         @foreach ($documentos as $archivo)
-                            <a href="{{ route('modulos.archivos.download', [$modulo, $archivo]) }}" target="_blank" class="p-4 flex items-center gap-4 hover:bg-gray-50/70 transition">
+                            <a
+                                href="{{ route('modulos.archivos.download', [$modulo, $archivo]) }}"
+                                target="_blank"
+                                @if (! $documentoAbierto) wire:click="abrirDocumento" @endif
+                                class="p-4 flex items-center gap-4 hover:bg-gray-50/70 transition"
+                            >
                                 <span class="inline-flex items-center justify-center h-9 w-9 rounded-lg bg-brand-50 text-brand-700 text-xs font-semibold uppercase shrink-0">
                                     {{ $archivo->tipo }}
                                 </span>
@@ -86,7 +91,7 @@
                                     <p class="text-sm text-gray-700 truncate">{{ $archivo->nombre_original }}</p>
                                     <p class="text-xs text-gray-400">{{ $archivo->tamanoLegible() }}</p>
                                 </div>
-                                <span class="text-brand-600 text-xs font-medium shrink-0">Abrir en pestaña nueva</span>
+                                <span class="text-brand-600 text-xs font-medium shrink-0">Abrir</span>
                             </a>
                         @endforeach
                     </div>
@@ -96,10 +101,15 @@
             <div class="flex justify-end">
                 @if ($yaLeido)
                     <span class="inline-flex items-center gap-2 text-sm text-green-700">
-                        ✓ Ya marcaste este módulo como leído
+                        ✓ Módulo Leído
                     </span>
                 @else
-                    <x-primary-button wire:click="marcarLeido" wire:loading.attr="disabled">
+                    <x-primary-button
+                        wire:click="marcarLeido"
+                        wire:loading.attr="disabled"
+                        :disabled="$requiereAbrirDocumento && ! $documentoAbierto"
+                        class="disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed disabled:hover:bg-gray-200"
+                    >
                         Marcar como leído
                     </x-primary-button>
                 @endif

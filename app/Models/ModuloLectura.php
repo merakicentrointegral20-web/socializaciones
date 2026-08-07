@@ -10,12 +10,14 @@ class ModuloLectura extends Model
     protected $fillable = [
         'modulo_id',
         'user_id',
+        'documento_abierto_at',
         'leido_at',
     ];
 
     protected function casts(): array
     {
         return [
+            'documento_abierto_at' => 'datetime',
             'leido_at' => 'datetime',
         ];
     }
