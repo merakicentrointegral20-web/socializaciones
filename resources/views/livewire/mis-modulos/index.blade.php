@@ -6,7 +6,7 @@
     </x-slot>
 
     <div class="py-10">
-        <div class="max-w-6xl mx-auto sm:px-6 lg:px-8 space-y-9">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-9">
 
             <p class="text-sm text-gray-500">
                 Revisa el contenido y el material de cada módulo antes de tu evaluación.

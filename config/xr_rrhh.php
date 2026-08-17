@@ -59,4 +59,6 @@ return [
 
     'empresa_logo' => public_path('img/impxurisa-04.svg'),
 
+    'certificado_firma' => public_path('img/firma-antonio-ordonez.png'),
+
 ];

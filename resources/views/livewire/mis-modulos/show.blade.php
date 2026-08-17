@@ -12,7 +12,7 @@
     </x-slot>
 
     <div class="py-10">
-        <div class="max-w-3xl mx-auto sm:px-6 lg:px-8 space-y-6">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
             @if (session('success'))
                 <div class="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
@@ -29,18 +29,18 @@
                     ['label' => 'Certificado', 'hecho' => (bool) $certificado],
                 ];
             @endphp
-            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-5">
-                <div class="flex items-center">
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-3 sm:px-6 py-5">
+                <div class="flex items-start">
                     @foreach ($pasos as $i => $paso)
-                        <div class="flex items-center {{ $loop->last ? '' : 'flex-1' }}">
-                            <div class="flex flex-col items-center gap-1.5 shrink-0">
+                        <div class="flex items-start {{ $loop->last ? '' : 'flex-1' }}">
+                            <div class="flex flex-col items-center gap-1.5 w-12 sm:w-auto shrink-0">
                                 <div class="h-7 w-7 rounded-full flex items-center justify-center text-xs font-medium {{ $paso['hecho'] ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-400' }}">
                                     {{ $paso['hecho'] ? '✓' : $i + 1 }}
                                 </div>
-                                <span class="text-[11px] text-gray-500 whitespace-nowrap">{{ $paso['label'] }}</span>
+                                <span class="text-[10px] sm:text-[11px] leading-tight text-center text-gray-500">{{ $paso['label'] }}</span>
                             </div>
                             @if (! $loop->last)
-                                <div class="flex-1 h-px mx-2 {{ $paso['hecho'] ? 'bg-brand-300' : 'bg-gray-200' }}"></div>
+                                <div class="flex-1 h-px mx-1 sm:mx-2 mt-3.5 {{ $paso['hecho'] ? 'bg-brand-300' : 'bg-gray-200' }}"></div>
                             @endif
                         </div>
                     @endforeach
@@ -72,26 +72,45 @@
             </div>
 
             @if ($documentos->isNotEmpty())
-                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div class="p-5 border-b border-gray-100">
-                        <h3 class="text-sm font-medium text-gray-900">Revisión obligatoria</h3>
+                <div class="bg-amber-50/60 rounded-2xl border-2 border-amber-200 shadow-sm overflow-hidden">
+                    <div class="p-5 border-b border-amber-200 flex items-center gap-3">
+                        <span class="inline-flex items-center justify-center h-9 w-9 rounded-full bg-amber-400 text-white text-base shrink-0">
+                            ⚠️
+                        </span>
+                        <div class="min-w-0">
+                            <h3 class="text-sm font-semibold text-amber-900 flex items-center gap-2 flex-wrap">
+                                Revisión obligatoria
+                                <span class="inline-flex items-center rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                                    Requerido
+                                </span>
+                            </h3>
+                            <p class="text-xs text-amber-700 mt-0.5">
+                                @if ($documentoAbierto)
+                                    Ya abriste el material. Puedes marcar el módulo como leído.
+                                @else
+                                    Debes abrir el material antes de poder marcar este módulo como leído.
+                                @endif
+                            </p>
+                        </div>
                     </div>
-                    <div class="divide-y divide-gray-50">
+                    <div class="divide-y divide-amber-100">
                         @foreach ($documentos as $archivo)
                             <a
                                 href="{{ route('modulos.archivos.download', [$modulo, $archivo]) }}"
                                 target="_blank"
                                 @if (! $documentoAbierto) wire:click="abrirDocumento" @endif
-                                class="p-4 flex items-center gap-4 hover:bg-gray-50/70 transition"
+                                class="p-4 flex items-center gap-4 hover:bg-amber-100/50 transition"
                             >
-                                <span class="inline-flex items-center justify-center h-9 w-9 rounded-lg bg-brand-50 text-brand-700 text-xs font-semibold uppercase shrink-0">
+                                <span class="inline-flex items-center justify-center h-9 w-9 rounded-lg bg-white ring-1 ring-amber-200 text-amber-700 text-xs font-semibold uppercase shrink-0">
                                     {{ $archivo->tipo }}
                                 </span>
                                 <div class="min-w-0 flex-1">
-                                    <p class="text-sm text-gray-700 truncate">{{ $archivo->nombre_original }}</p>
+                                    <p class="text-sm text-gray-800 truncate">{{ $archivo->nombre_original }}</p>
                                     <p class="text-xs text-gray-400">{{ $archivo->tamanoLegible() }}</p>
                                 </div>
-                                <span class="text-brand-600 text-xs font-medium shrink-0">Abrir</span>
+                                <span class="inline-flex items-center gap-1 text-amber-700 text-xs font-semibold shrink-0">
+                                    Abrir →
+                                </span>
                             </a>
                         @endforeach
                     </div>

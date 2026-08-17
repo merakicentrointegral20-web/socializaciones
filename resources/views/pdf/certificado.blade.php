@@ -101,6 +101,11 @@
             text-align: center;
         }
 
+        .firma .firma-img {
+            height: 42pt;
+            margin-bottom: -8pt;
+        }
+
         .firma .linea {
             width: 220pt;
             margin: 0 auto;
@@ -181,6 +186,9 @@
             </p>
 
             <div class="firma">
+                @if (is_file(config('xr_rrhh.certificado_firma')))
+                    <img class="firma-img" src="{{ config('xr_rrhh.certificado_firma') }}" alt="Firma">
+                @endif
                 <div class="linea">&nbsp;</div>
                 <div class="cargo">Lcdo. Antonio Ordoñez</div>
                 <div class="cargo">Talento Humano</div>

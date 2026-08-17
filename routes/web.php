@@ -65,9 +65,14 @@ Route::get('modulos/{modulo}/archivos/{archivo}', function (Modulo $modulo, Modu
         : Storage::disk('local')->download($archivo->disk_path, $archivo->nombre_original);
 })->middleware(['auth', 'verified'])->name('modulos.archivos.download');
 
-// Acta de inducción: solo el instructor dueño del módulo la puede ver.
+// Acta de inducción: el instructor dueño del módulo o quien tenga permiso
+// de administrar accesos la puede ver (mismo criterio que Seguimiento::mount).
 Route::get('modulos/{modulo}/capacitaciones/{capacitacion}/acta', function (Modulo $modulo, \App\Models\Capacitacion $capacitacion) {
-    abort_unless($modulo->created_by === auth()->id(), 403);
+    abort_unless(
+        $modulo->created_by === auth()->id()
+            || auth()->user()->hasPermissionTo(config('xr_rrhh.manage_access_permission')),
+        403
+    );
     abort_unless($capacitacion->modulo_id === $modulo->id, 404);
     abort_unless($capacitacion->acta_path, 404);
 
@@ -79,7 +84,11 @@ Route::get('modulos/{modulo}/capacitaciones/{capacitacion}/acta', function (Modu
 // nunca se guarda en disco (el acta "real" es la escaneada que se sube en
 // capacitaciones.acta arriba).
 Route::get('modulos/{modulo}/capacitaciones/{capacitacion}/acta/imprimir', function (Modulo $modulo, \App\Models\Capacitacion $capacitacion) {
-    abort_unless($modulo->created_by === auth()->id(), 403);
+    abort_unless(
+        $modulo->created_by === auth()->id()
+            || auth()->user()->hasPermissionTo(config('xr_rrhh.manage_access_permission')),
+        403
+    );
     abort_unless($capacitacion->modulo_id === $modulo->id, 404);
 
     $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.acta-induccion', [

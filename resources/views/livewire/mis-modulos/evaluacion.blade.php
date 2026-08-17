@@ -9,9 +9,9 @@
     </x-slot>
 
     <div class="py-10">
-        <div class="max-w-2xl mx-auto sm:px-6 lg:px-8 space-y-6">
+        <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
-            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-4 flex items-center justify-between">
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
                 <p class="text-sm text-gray-500">{{ $preguntas->count() }} {{ Str::plural('pregunta', $preguntas->count()) }}</p>
                 <p class="text-sm text-gray-500">Necesitas <span class="font-medium text-gray-700">{{ $modulo->umbral_aprobacion }}/10</span> para aprobar</p>
             </div>
