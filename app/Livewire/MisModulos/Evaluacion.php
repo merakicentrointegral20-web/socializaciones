@@ -6,6 +6,7 @@ use App\Models\CapacitacionAsistente;
 use App\Models\Certificado;
 use App\Models\EvaluacionIntento;
 use App\Models\Modulo;
+use App\Models\ModuloLectura;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -17,16 +18,19 @@ class Evaluacion extends Component
     /** @var array<int, string> */
     public array $respuestas = [];
 
+    /** Orden (ids de pregunta) sorteado para este intento, para que no se reordene en cada render. */
+    public array $ordenPreguntas = [];
+
     public function mount(Modulo $modulo): void
     {
         abort_unless($modulo->activo, 404);
 
-        $puedeEvaluar = CapacitacionAsistente::where('user_id', auth()->id())
-            ->where('asistio', true)
-            ->whereHas('capacitacion', fn ($q) => $q->where('modulo_id', $modulo->id))
+        $puedeEvaluar = ModuloLectura::where('user_id', auth()->id())
+            ->where('modulo_id', $modulo->id)
+            ->whereNotNull('leido_at')
             ->exists();
 
-        abort_unless($puedeEvaluar, 403, 'Todavía no se registró tu asistencia a la inducción de este módulo.');
+        abort_unless($puedeEvaluar, 403, 'Todavía no marcaste este módulo como leído.');
 
         $yaAprobado = EvaluacionIntento::where('user_id', auth()->id())
             ->where('modulo_id', $modulo->id)
@@ -36,6 +40,8 @@ class Evaluacion extends Component
         abort_if($yaAprobado, 403, 'Ya aprobaste la evaluación de este módulo.');
 
         $this->modulo = $modulo;
+
+        $this->ordenPreguntas = $modulo->preguntas()->pluck('id')->shuffle()->values()->all();
     }
 
     public function enviar(): void
@@ -117,8 +123,14 @@ class Evaluacion extends Component
 
     public function render()
     {
+        $orden = $this->ordenPreguntas;
+
+        $preguntas = $this->modulo->preguntas()->with('opciones')->get()
+            ->sortBy(fn ($pregunta) => array_search($pregunta->id, $orden))
+            ->values();
+
         return view('livewire.mis-modulos.evaluacion', [
-            'preguntas' => $this->modulo->preguntas()->with('opciones')->get(),
+            'preguntas' => $preguntas,
         ]);
     }
 }

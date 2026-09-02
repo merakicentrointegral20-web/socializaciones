@@ -24,7 +24,6 @@
             @php
                 $pasos = [
                     ['label' => 'Leer', 'hecho' => $yaLeido],
-                    ['label' => 'Inducción', 'hecho' => $asistioInduccion],
                     ['label' => 'Evaluación', 'hecho' => (bool) $certificado || ($ultimoIntento?->aprobado ?? false)],
                     ['label' => 'Certificado', 'hecho' => (bool) $certificado],
                 ];
@@ -163,7 +162,7 @@
                         </a>
                     @endif
                 </div>
-            @elseif ($asistioInduccion)
+            @elseif ($yaLeido)
                 <div class="rounded-2xl border border-gray-100 bg-white shadow-sm p-6 flex flex-wrap items-center justify-between gap-4">
                     <div>
                         <p class="text-sm font-medium text-gray-800">Evaluación</p>

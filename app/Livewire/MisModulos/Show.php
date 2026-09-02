@@ -81,7 +81,7 @@ class Show extends Component
         );
 
         $this->yaLeido = true;
-        session()->flash('success', 'Marcaste este módulo como leído.');
+        session()->flash('success', 'Marcaste este módulo como leído. Ya puedes rendir tu evaluación.');
     }
 
     public function render()
