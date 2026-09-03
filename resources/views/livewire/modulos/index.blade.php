@@ -14,6 +14,12 @@
                 </div>
             @endif
 
+            @if (session('error'))
+                <div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                    {{ session('error') }}
+                </div>
+            @endif
+
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <input
                     wire:model.live.debounce.300ms="search"
@@ -89,8 +95,8 @@
             <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div class="divide-y divide-gray-100">
                     @forelse ($modulos as $modulo)
-                        <a href="{{ route('modulos.show', $modulo) }}" wire:navigate class="p-5 flex flex-wrap items-center gap-4 hover:bg-gray-50 transition">
-                            <div class="min-w-0 flex-1">
+                        <div class="p-5 flex flex-wrap items-center gap-4 hover:bg-gray-50 transition">
+                            <a href="{{ route('modulos.show', $modulo) }}" wire:navigate class="min-w-0 flex-1">
                                 <div class="flex items-center gap-2">
                                     <p class="font-medium text-gray-900 truncate">{{ $modulo->titulo }}</p>
                                     @unless ($modulo->activo)
@@ -100,9 +106,12 @@
                                 <p class="text-xs text-gray-500 mt-0.5">
                                     {{ $modulo->categoria }} · {{ $modulo->preguntas_count }} {{ Str::plural('pregunta', $modulo->preguntas_count) }} · creado por {{ $modulo->creador->name }}
                                 </p>
-                            </div>
-                            <span class="text-brand-600 text-sm font-medium">Editar →</span>
-                        </a>
+                            </a>
+                            <button type="button" wire:click.stop="askDelete({{ $modulo->id }})" class="text-sm font-medium text-red-500 hover:text-red-700">
+                                Eliminar
+                            </button>
+                            <a href="{{ route('modulos.show', $modulo) }}" wire:navigate class="text-brand-600 text-sm font-medium">Editar →</a>
+                        </div>
                     @empty
                         <div class="p-10 text-center text-sm text-gray-400">
                             Todavía no has creado ningún módulo.
@@ -118,4 +127,25 @@
             </div>
         </div>
     </div>
+
+    <x-modal name="confirm-delete-modulo" :show="$confirmingDelete !== null" focusable>
+        @if ($confirmingDelete)
+            <div class="p-6">
+                <h2 class="text-lg font-semibold text-gray-900">¿Eliminar módulo?</h2>
+
+                <p class="mt-3 text-sm text-gray-600">
+                    Se va a eliminar <strong>{{ $confirmingDelete['titulo'] }}</strong> junto con sus preguntas y archivos. Esta acción no se puede deshacer.
+                </p>
+
+                <div class="mt-6 flex justify-end gap-3">
+                    <x-secondary-button wire:click="cancelDelete">
+                        Cancelar
+                    </x-secondary-button>
+                    <x-danger-button wire:click="delete" wire:loading.attr="disabled">
+                        Eliminar
+                    </x-danger-button>
+                </div>
+            </div>
+        @endif
+    </x-modal>
 </div>

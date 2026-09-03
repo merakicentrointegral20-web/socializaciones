@@ -32,9 +32,60 @@ class Index extends Component
 
     public string $nuevaCategoria = '';
 
+    // ─── Eliminar módulo ────────────────────────────────────────────────────
+    /** @var array{id: int, titulo: string}|null */
+    public ?array $confirmingDelete = null;
+
     public function updatingSearch(): void
     {
         $this->resetPage();
+    }
+
+    public function askDelete(int $moduloId): void
+    {
+        $modulo = Modulo::findOrFail($moduloId);
+
+        $this->confirmingDelete = ['id' => $modulo->id, 'titulo' => $modulo->titulo];
+        $this->dispatch('open-modal', 'confirm-delete-modulo');
+    }
+
+    public function cancelDelete(): void
+    {
+        $this->confirmingDelete = null;
+        $this->dispatch('close-modal', 'confirm-delete-modulo');
+    }
+
+    public function delete(): void
+    {
+        if (! $this->confirmingDelete) {
+            return;
+        }
+
+        $modulo = Modulo::findOrFail($this->confirmingDelete['id']);
+
+        // evaluacion_intentos, certificados y capacitaciones NO tienen
+        // cascadeOnDelete (a propósito: son historial de colaboradores, no
+        // se puede perder). Si el módulo ya tiene actividad, no se borra --
+        // se usa "activo = false" para retirarlo de circulación.
+        $tieneHistorial = $modulo->evaluacionIntentos()->exists()
+            || $modulo->certificados()->exists()
+            || $modulo->capacitaciones()->exists();
+
+        if ($tieneHistorial) {
+            session()->flash('error', "\"{$modulo->titulo}\" ya tiene evaluaciones, certificados o capacitaciones asociadas y no se puede eliminar. Desactívalo en su lugar.");
+            $this->confirmingDelete = null;
+            $this->dispatch('close-modal', 'confirm-delete-modulo');
+
+            return;
+        }
+
+        $titulo = $modulo->titulo;
+        $modulo->delete();
+
+        session()->flash('success', "Módulo \"{$titulo}\" eliminado.");
+
+        $this->confirmingDelete = null;
+        $this->dispatch('close-modal', 'confirm-delete-modulo');
     }
 
     public function toggleCreateForm(): void
