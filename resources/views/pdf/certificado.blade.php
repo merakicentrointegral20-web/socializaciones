@@ -176,7 +176,11 @@
 
             <ol>
                 <li><b>MATERIAL PRE-INDUCCIÓN:</b> Realizó la lectura, revisión y análisis obligatorio de la guía técnica previa.</li>
-                <li><b>SOCIALIZACIÓN PRESENCIAL:</b> Asistió de forma obligatoria y participativa a la jornada de socialización presencial enfocada específicamente en el tema: {{ $moduloTitulo }}.</li>
+                @if ($esPresencial)
+                    <li><b>SOCIALIZACIÓN PRESENCIAL:</b> Asistió de forma obligatoria y participativa a la jornada de socialización presencial enfocada específicamente en el tema: {{ $moduloTitulo }}.</li>
+                @else
+                    <li><b>SOCIALIZACIÓN VIRTUAL:</b> Completó de forma obligatoria y secuencial la socialización virtual (contenido y videos) enfocada específicamente en el tema: {{ $moduloTitulo }}.</li>
+                @endif
                 <li><b>EVALUACIÓN DE CONOCIMIENTOS:</b> Rindió satisfactoriamente los test correspondientes al tema socializado, aprobando los mismos con una calificación sobresaliente.</li>
             </ol>
 

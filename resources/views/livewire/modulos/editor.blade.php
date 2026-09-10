@@ -1,19 +1,28 @@
 <div>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <a href="{{ route('modulos.index') }}" wire:navigate class="text-gray-400 hover:text-gray-600">←</a>
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex items-center gap-3 min-w-0">
+                <a href="{{ route('modulos.index') }}" wire:navigate class="text-gray-400 hover:text-gray-600 shrink-0">←</a>
+                <h2 class="font-semibold text-xl text-gray-800 leading-tight truncate">
                     {{ $modulo->titulo }}
                 </h2>
             </div>
-            <a
-                href="{{ route('modulos.seguimiento', $modulo) }}"
-                wire:navigate
-                class="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 transition"
-            >
-                Ver seguimiento →
-            </a>
+            <div class="flex items-center gap-2">
+                <a
+                    href="{{ route('modulos.asignacion', $modulo) }}"
+                    wire:navigate
+                    class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 rounded-lg border border-brand-200 bg-white px-4 py-2 text-sm font-semibold text-brand-700 shadow-sm hover:bg-brand-50 transition"
+                >
+                    Asignar
+                </a>
+                <a
+                    href="{{ route('modulos.seguimiento', $modulo) }}"
+                    wire:navigate
+                    class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 transition"
+                >
+                    Ver seguimiento →
+                </a>
+            </div>
         </div>
     </x-slot>
 
@@ -30,12 +39,7 @@
             <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                 @if ($editandoDatos)
                     <div class="space-y-4">
-                        <div class="flex items-center justify-between">
-                            <h3 class="font-medium text-gray-900">Datos del módulo</h3>
-                            <button type="button" wire:click="cancelarEdicionDatos" class="text-sm text-gray-400 hover:text-gray-600">
-                                Cancelar
-                            </button>
-                        </div>
+                        <h3 class="font-medium text-gray-900">Datos del módulo</h3>
 
                         <div>
                             <x-input-label for="titulo" value="Título" />
@@ -55,33 +59,56 @@
                         </div>
 
                         <div>
+                            <x-input-label value="Tipo de inducción" />
+                            <div class="flex gap-4 mt-1">
+                                <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                                    <input type="radio" wire:model="tipoInduccion" value="presencial" class="border-gray-300 text-brand-600 focus:ring-brand-500">
+                                    Presencial
+                                </label>
+                                <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                                    <input type="radio" wire:model="tipoInduccion" value="virtual" class="border-gray-300 text-brand-600 focus:ring-brand-500">
+                                    Virtual
+                                </label>
+                            </div>
+                            <x-input-error :messages="$errors->get('tipoInduccion')" class="mt-1" />
+                        </div>
+
+                        <div>
                             <x-input-label for="contenido" value="Contenido" />
                             <x-rich-editor model="contenido" :value="$contenido" class="rounded-lg border border-gray-300 overflow-hidden" />
                             <x-input-error :messages="$errors->get('contenido')" class="mt-1" />
                         </div>
 
-                        <div class="flex flex-wrap items-end gap-6">
-                            <div class="max-w-xs">
-                                <x-input-label for="umbralAprobacion" value="Umbral de aprobación (sobre 10)" />
-                                <x-text-input wire:model="umbralAprobacion" id="umbralAprobacion" type="number" min="1" max="10" class="w-full" />
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                                <x-input-label for="umbralAprobacion" value="Umbral de aprobación" />
+                                <div class="flex items-center gap-2">
+                                    <x-text-input wire:model="umbralAprobacion" id="umbralAprobacion" type="number" min="1" max="10" class="w-full" />
+                                    <span class="text-sm text-gray-400 shrink-0">/ 10</span>
+                                </div>
                                 <x-input-error :messages="$errors->get('umbralAprobacion')" class="mt-1" />
                             </div>
 
-                            <div class="max-w-xs">
-                                <x-input-label for="fechaLimite" value="Fecha límite (opcional)" />
+                            <div>
+                                <x-input-label for="fechaLimite" value="Fecha límite" />
                                 <x-text-input wire:model="fechaLimite" id="fechaLimite" type="date" class="w-full" />
                                 <x-input-error :messages="$errors->get('fechaLimite')" class="mt-1" />
                             </div>
 
-                            <label class="inline-flex items-center gap-2 text-sm text-gray-600 pb-2">
-                                <input type="checkbox" wire:model="activo" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
-                                Módulo activo
-                            </label>
+                            <div class="flex items-end pb-2.5">
+                                <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                                    <input type="checkbox" wire:model="activo" class="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500">
+                                    Activo
+                                </label>
+                            </div>
                         </div>
 
-                        <div class="flex justify-end pt-2">
-                            <x-primary-button wire:click="save" wire:loading.attr="disabled">
-                                Guardar cambios
+                        <div class="flex justify-end gap-3 pt-4 mt-2 border-t border-gray-100">
+                            <x-secondary-button wire:click="cancelarEdicionDatos">
+                                Cancelar
+                            </x-secondary-button>
+                            <x-primary-button wire:click="save" wire:loading.attr="disabled" class="px-6">
+                                Guardar
                             </x-primary-button>
                         </div>
                     </div>
@@ -92,6 +119,9 @@
                                 <h3 class="font-medium text-gray-900 truncate">{{ $titulo }}</h3>
                                 <span class="inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
                                     {{ $categoria }}
+                                </span>
+                                <span class="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                                    {{ $tipoInduccion === 'virtual' ? 'Virtual' : 'Presencial' }}
                                 </span>
                                 @if ($activo)
                                     <span class="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">Activo</span>
@@ -228,6 +258,76 @@
                             Guardar material de apoyo
                         </x-primary-button>
                     @endif
+                </div>
+            </div>
+
+            {{-- ─── Videos (OneDrive, YouTube o Vimeo) ────────────────────────── --}}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="p-6 border-b border-gray-100">
+                    <h3 class="font-medium text-gray-900">Videos</h3>
+                </div>
+
+                <div class="divide-y divide-gray-100">
+                    @forelse ($videos as $i => $video)
+                        <div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                            <div class="flex items-center gap-3 min-w-0 flex-1">
+                                <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-brand-50 text-sm font-semibold text-brand-700 shrink-0">
+                                    {{ $i + 1 }}
+                                </span>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm text-gray-800 font-medium truncate">{{ $video->titulo }}</p>
+                                    @if ($video->descripcion)
+                                        <p class="text-xs text-gray-500 mt-0.5 truncate">{{ $video->descripcion }}</p>
+                                    @endif
+                                    <a href="{{ $video->embed_url }}" target="_blank" class="text-xs text-gray-400 hover:text-brand-600">
+                                        Ver enlace ↗
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1 shrink-0 self-end sm:self-auto">
+                                <button type="button" wire:click="moverVideoArriba({{ $video->id }})" @if ($i === 0) disabled @endif class="h-8 w-8 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-800 disabled:opacity-25 disabled:hover:bg-transparent" title="Mover arriba">
+                                    ↑
+                                </button>
+                                <button type="button" wire:click="moverVideoAbajo({{ $video->id }})" @if ($i === $videos->count() - 1) disabled @endif class="h-8 w-8 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-800 disabled:opacity-25 disabled:hover:bg-transparent" title="Mover abajo">
+                                    ↓
+                                </button>
+                                <div class="w-px h-5 bg-gray-200 mx-1"></div>
+                                <button type="button" wire:click="eliminarVideo({{ $video->id }})" wire:confirm="¿Eliminar este video? Esta acción no se puede deshacer." class="h-8 w-8 rounded-lg border border-red-200 text-red-600 hover:bg-red-50" title="Eliminar video">
+                                    ✕
+                                </button>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="p-10 text-center text-sm text-gray-400">
+                            Todavía no hay videos en este módulo.
+                        </div>
+                    @endforelse
+                </div>
+
+                <div class="p-6 bg-gray-50 space-y-3">
+                    <div>
+                        <x-input-label for="nuevoVideoTitulo" value="Título" />
+                        <x-text-input wire:model="nuevoVideoTitulo" id="nuevoVideoTitulo" class="w-full" />
+                        <x-input-error :messages="$errors->get('nuevoVideoTitulo')" class="mt-1" />
+                    </div>
+
+                    <div>
+                        <x-input-label for="nuevoVideoDescripcion" value="Descripción (opcional)" />
+                        <textarea wire:model="nuevoVideoDescripcion" id="nuevoVideoDescripcion" rows="2" class="w-full rounded-lg border-gray-300 text-sm focus:border-brand-500 focus:ring-brand-500"></textarea>
+                        <x-input-error :messages="$errors->get('nuevoVideoDescripcion')" class="mt-1" />
+                    </div>
+
+                    <div>
+                        <x-input-label for="nuevoVideoUrl" value="Link del video" />
+                        <textarea wire:model="nuevoVideoUrl" id="nuevoVideoUrl" rows="2" class="w-full rounded-lg border-gray-300 text-sm focus:border-brand-500 focus:ring-brand-500" placeholder="OneDrive (link de Insertar), YouTube o Vimeo..."></textarea>
+                        <x-input-error :messages="$errors->get('nuevoVideoUrl')" class="mt-1" />
+                    </div>
+
+                    <div class="flex justify-end">
+                        <x-primary-button wire:click="agregarVideo" wire:loading.attr="disabled">
+                            Agregar video
+                        </x-primary-button>
+                    </div>
                 </div>
             </div>
 

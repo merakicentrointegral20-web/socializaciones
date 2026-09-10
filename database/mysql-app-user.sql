@@ -115,4 +115,9 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON xuri_apex.colaborador_contactos TO 'xr_r
 -- desde la UI (2026-07-10).
 GRANT SELECT, INSERT, UPDATE, DELETE ON xuri_apex.categorias TO 'xr_rrhh_app'@'127.0.0.1', 'xr_rrhh_app'@'localhost';
 
+-- Videos (OneDrive embebido) y asignación de módulos por colaborador (2026-09-10).
+GRANT SELECT, INSERT, UPDATE, DELETE ON xuri_apex.modulo_videos TO 'xr_rrhh_app'@'127.0.0.1', 'xr_rrhh_app'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON xuri_apex.modulo_video_progresos TO 'xr_rrhh_app'@'127.0.0.1', 'xr_rrhh_app'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON xuri_apex.modulo_asignaciones TO 'xr_rrhh_app'@'127.0.0.1', 'xr_rrhh_app'@'localhost';
+
 FLUSH PRIVILEGES;

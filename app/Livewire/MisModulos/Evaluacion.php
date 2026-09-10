@@ -21,16 +21,27 @@ class Evaluacion extends Component
     /** Orden (ids de pregunta) sorteado para este intento, para que no se reordene en cada render. */
     public array $ordenPreguntas = [];
 
+    // Cuántas veces se puede intentar la evaluación antes de exigir reiniciar
+    // el módulo (volver a leer y ver los videos) -- ver
+    // App\Livewire\MisModulos\Show::reiniciarModulo().
+    public const MAX_INTENTOS = 3;
+
     public function mount(Modulo $modulo): void
     {
         abort_unless($modulo->activo, 404);
+        abort_unless($modulo->visiblePara(auth()->user()), 404);
 
-        $puedeEvaluar = ModuloLectura::where('user_id', auth()->id())
+        $lectura = ModuloLectura::where('user_id', auth()->id())
             ->where('modulo_id', $modulo->id)
-            ->whereNotNull('leido_at')
-            ->exists();
+            ->first();
 
-        abort_unless($puedeEvaluar, 403, 'Todavía no marcaste este módulo como leído.');
+        abort_unless($lectura?->leido_at, 403, 'Todavía no marcaste este módulo como leído.');
+
+        abort_unless(
+            $modulo->todosLosVideosCompletados(auth()->id()),
+            403,
+            'Todavía no completaste todos los videos de este módulo.'
+        );
 
         $yaAprobado = EvaluacionIntento::where('user_id', auth()->id())
             ->where('modulo_id', $modulo->id)
@@ -38,6 +49,19 @@ class Evaluacion extends Component
             ->exists();
 
         abort_if($yaAprobado, 403, 'Ya aprobaste la evaluación de este módulo.');
+
+        // Solo cuentan los intentos desde la última vez que se marcó como
+        // leído -- reiniciar el módulo "abre" otra tanda de intentos.
+        $intentosEnCiclo = EvaluacionIntento::where('user_id', auth()->id())
+            ->where('modulo_id', $modulo->id)
+            ->where('completed_at', '>=', $lectura->leido_at)
+            ->count();
+
+        abort_if(
+            $intentosEnCiclo >= self::MAX_INTENTOS,
+            403,
+            'Alcanzaste el máximo de '.self::MAX_INTENTOS.' intentos para este módulo. Debes reiniciar el módulo (leer el contenido y ver los videos de nuevo) para volver a intentar la evaluación.'
+        );
 
         $this->modulo = $modulo;
 
@@ -111,12 +135,22 @@ class Evaluacion extends Component
             }
         }
 
-        session()->flash(
-            'success',
-            $aprobado
-                ? "¡Aprobaste! Nota: {$notaSobre10}/10. Tu certificado ya está disponible."
-                : "No alcanzaste el umbral. Nota: {$notaSobre10}/10. Puedes volver a intentarlo."
-        );
+        if ($aprobado) {
+            $mensaje = "¡Aprobaste! Nota: {$notaSobre10}/10. Tu certificado ya está disponible.";
+        } else {
+            $lectura = ModuloLectura::where('user_id', auth()->id())->where('modulo_id', $this->modulo->id)->first();
+            $intentosEnCiclo = EvaluacionIntento::where('user_id', auth()->id())
+                ->where('modulo_id', $this->modulo->id)
+                ->where('completed_at', '>=', $lectura->leido_at)
+                ->count();
+            $restantes = max(0, self::MAX_INTENTOS - $intentosEnCiclo);
+
+            $mensaje = $restantes > 0
+                ? "No alcanzaste el umbral. Nota: {$notaSobre10}/10. Te ".($restantes === 1 ? 'queda 1 intento' : "quedan {$restantes} intentos").'.'
+                : "No alcanzaste el umbral. Nota: {$notaSobre10}/10. Alcanzaste el máximo de intentos: debes reiniciar el módulo para volver a intentarlo.";
+        }
+
+        session()->flash('success', $mensaje);
 
         $this->redirect(route('mis-modulos.show', $this->modulo), navigate: true);
     }

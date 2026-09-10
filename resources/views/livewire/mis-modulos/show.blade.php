@@ -24,9 +24,14 @@
             @php
                 $pasos = [
                     ['label' => 'Leer', 'hecho' => $yaLeido],
-                    ['label' => 'Evaluación', 'hecho' => (bool) $certificado || ($ultimoIntento?->aprobado ?? false)],
-                    ['label' => 'Certificado', 'hecho' => (bool) $certificado],
                 ];
+
+                if ($videos->isNotEmpty()) {
+                    $pasos[] = ['label' => 'Videos', 'hecho' => $todosLosVideosCompletados];
+                }
+
+                $pasos[] = ['label' => 'Evaluación', 'hecho' => (bool) $certificado || ($ultimoIntento?->aprobado ?? false)];
+                $pasos[] = ['label' => 'Certificado', 'hecho' => (bool) $certificado];
             @endphp
             <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-3 sm:px-6 py-5">
                 <div class="flex items-start">
@@ -116,7 +121,7 @@
                 </div>
             @endif
 
-            <div class="flex justify-end">
+            <div class="flex sm:justify-end">
                 @if ($yaLeido)
                     <span class="inline-flex items-center gap-2 text-sm text-green-700">
                         ✓ Módulo Leído
@@ -126,12 +131,59 @@
                         wire:click="marcarLeido"
                         wire:loading.attr="disabled"
                         :disabled="$requiereAbrirDocumento && ! $documentoAbierto"
-                        class="disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed disabled:hover:bg-gray-200"
+                        class="w-full sm:w-auto disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed disabled:hover:bg-gray-200"
                     >
                         Marcar como leído
                     </x-primary-button>
                 @endif
             </div>
+
+            @if ($yaLeido && $videos->isNotEmpty())
+                <div class="space-y-4">
+                    @foreach ($videos as $item)
+                        @php $video = $item->video; @endphp
+                        <div wire:key="video-{{ $video->id }}" class="bg-white rounded-2xl border {{ $item->desbloqueado ? 'border-gray-100' : 'border-gray-100 opacity-60' }} shadow-sm overflow-hidden">
+                            <div class="p-5 flex items-start gap-3">
+                                <span class="inline-flex items-center justify-center h-7 w-7 rounded-full text-xs font-medium shrink-0 mt-0.5 {{ $item->completado ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-400' }}">
+                                    {{ $item->completado ? '✓' : $loop->iteration }}
+                                </span>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm font-medium text-gray-800">{{ $video->titulo }}</p>
+                                    @if ($video->descripcion)
+                                        <p class="text-xs text-gray-500 mt-0.5">{{ $video->descripcion }}</p>
+                                    @endif
+                                </div>
+                            </div>
+
+                            @if ($item->desbloqueado)
+                                <div class="px-5 pb-5 space-y-3">
+                                    {{-- wire:ignore: el morph de Livewire en cada re-render puede
+                                    destruir/recrear el <iframe> si se deja mezclado con contenido
+                                    que sí cambia (ej. el botón que pasa a check) -- se aísla para
+                                    que el navegador nunca lo toque de nuevo una vez montado. --}}
+                                    <div wire:ignore class="aspect-video w-full rounded-xl overflow-hidden bg-gray-50">
+                                        <iframe src="{{ $video->embed_url }}" class="w-full h-full" allowfullscreen></iframe>
+                                    </div>
+
+                                    @if ($item->completado)
+                                        <span class="inline-flex items-center gap-2 text-sm text-green-700">
+                                            ✓ Video completado
+                                        </span>
+                                    @else
+                                        <x-primary-button wire:click="marcarVideoCompletado({{ $video->id }})" wire:loading.attr="disabled" class="w-full sm:w-auto">
+                                            Confirmo que vi este video completo
+                                        </x-primary-button>
+                                    @endif
+                                </div>
+                            @else
+                                <div class="px-5 pb-5">
+                                    <p class="text-xs text-gray-400">🔒 Se desbloquea al completar el video anterior.</p>
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            @endif
 
             @if ($induccion)
                 <div class="rounded-2xl border border-brand-100 bg-brand-50/60 p-5 text-sm text-brand-900">
@@ -162,20 +214,33 @@
                         </a>
                     @endif
                 </div>
-            @elseif ($yaLeido)
-                <div class="rounded-2xl border border-gray-100 bg-white shadow-sm p-6 flex flex-wrap items-center justify-between gap-4">
+            @elseif ($yaLeido && $todosLosVideosCompletados && $intentosAgotados)
+                <div class="rounded-2xl border border-red-200 bg-red-50 p-6 space-y-3">
+                    <div>
+                        <p class="text-sm font-medium text-red-900">Alcanzaste el máximo de intentos</p>
+                        <p class="text-xs text-red-700 mt-0.5">
+                            Para volver a intentar la evaluación, primero reinicia el módulo: vuelve a leer el contenido y ver los videos.
+                        </p>
+                    </div>
+                    <x-danger-button wire:click="reiniciarModulo" wire:confirm="¿Reiniciar este módulo? Perderás tu progreso de lectura y videos, pero tu historial de intentos se conserva." class="w-full sm:w-auto justify-center">
+                        Reiniciar módulo
+                    </x-danger-button>
+                </div>
+            @elseif ($yaLeido && $todosLosVideosCompletados)
+                <div class="rounded-2xl border border-gray-100 bg-white shadow-sm p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                         <p class="text-sm font-medium text-gray-800">Evaluación</p>
                         @if ($ultimoIntento)
                             <p class="text-xs text-red-600 mt-0.5">
-                                No aprobaste tu último intento ({{ $ultimoIntento->score }}/{{ $ultimoIntento->total_preguntas }}). Puedes volver a intentarlo.
+                                No aprobaste tu último intento ({{ $ultimoIntento->score }}/{{ $ultimoIntento->total_preguntas }}).
+                                Te {{ $intentosRestantes === 1 ? 'queda 1 intento' : "quedan {$intentosRestantes} intentos" }}.
                             </p>
                         @else
                             <p class="text-xs text-gray-500 mt-0.5">Ya puedes rendir tu evaluación.</p>
                         @endif
                     </div>
-                    <a href="{{ route('mis-modulos.evaluacion', $modulo) }}" wire:navigate>
-                        <x-primary-button>Rendir evaluación</x-primary-button>
+                    <a href="{{ route('mis-modulos.evaluacion', $modulo) }}" wire:navigate class="block sm:inline-block">
+                        <x-primary-button class="w-full sm:w-auto">Rendir evaluación</x-primary-button>
                     </a>
                 </div>
             @endif

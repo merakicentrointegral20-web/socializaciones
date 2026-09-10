@@ -66,6 +66,21 @@
                     </div>
 
                     <div>
+                        <x-input-label value="Tipo de inducción" />
+                        <div class="flex gap-4 mt-1">
+                            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                                <input type="radio" wire:model="tipoInduccion" value="presencial" class="border-gray-300 text-brand-600 focus:ring-brand-500">
+                                Presencial
+                            </label>
+                            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                                <input type="radio" wire:model="tipoInduccion" value="virtual" class="border-gray-300 text-brand-600 focus:ring-brand-500">
+                                Virtual
+                            </label>
+                        </div>
+                        <x-input-error :messages="$errors->get('tipoInduccion')" class="mt-1" />
+                    </div>
+
+                    <div>
                         <x-input-label for="contenido" value="Contenido (opcional por ahora)" />
                         <x-rich-editor model="contenido" :value="$contenido" class="rounded-lg border border-gray-300 overflow-hidden" />
                         <x-input-error :messages="$errors->get('contenido')" class="mt-1" />

@@ -21,6 +21,8 @@ class Editor extends Component
 
     public string $categoria = '';
 
+    public string $tipoInduccion = 'presencial';
+
     public string $contenido = '';
 
     public int $umbralAprobacion = 7;
@@ -53,6 +55,15 @@ class Editor extends Component
     /** @var \Livewire\Features\SupportFileUploads\TemporaryUploadedFile[] */
     public array $nuevosArchivosApoyo = [];
 
+    // ─── Videos (OneDrive embebido) ──────────────────────────────────────────
+    public string $nuevoVideoTitulo = '';
+
+    public string $nuevoVideoDescripcion = '';
+
+    // Acepta tanto el link puro como el <iframe> completo que copia OneDrive
+    // al usar "Insertar" -- se extrae el src en agregarVideo().
+    public string $nuevoVideoUrl = '';
+
     public function mount(Modulo $modulo): void
     {
         abort_unless(
@@ -69,6 +80,7 @@ class Editor extends Component
     {
         $this->titulo = $this->modulo->titulo;
         $this->categoria = $this->modulo->categoria;
+        $this->tipoInduccion = $this->modulo->tipo_induccion;
         $this->contenido = (string) $this->modulo->contenido;
         $this->umbralAprobacion = $this->modulo->umbral_aprobacion;
         $this->fechaLimite = $this->modulo->fecha_limite?->format('Y-m-d') ?? '';
@@ -95,6 +107,7 @@ class Editor extends Component
         $data = $this->validate([
             'titulo' => ['required', 'string', 'max:150'],
             'categoria' => ['required', 'string', 'in:'.implode(',', Categoria::pluck('nombre')->all())],
+            'tipoInduccion' => ['required', 'in:presencial,virtual'],
             'contenido' => ['nullable', 'string'],
             'umbralAprobacion' => ['required', 'integer', 'min:1', 'max:10'],
             'fechaLimite' => ['nullable', 'date'],
@@ -102,6 +115,7 @@ class Editor extends Component
         ], [], [
             'titulo' => 'título',
             'categoria' => 'categoría',
+            'tipoInduccion' => 'tipo de inducción',
             'umbralAprobacion' => 'umbral de aprobación',
             'fechaLimite' => 'fecha límite',
         ]);
@@ -109,6 +123,7 @@ class Editor extends Component
         $this->modulo->update([
             'titulo' => $data['titulo'],
             'categoria' => $data['categoria'],
+            'tipo_induccion' => $data['tipoInduccion'],
             'contenido' => Modulo::limpiarContenido($data['contenido']),
             'umbral_aprobacion' => $data['umbralAprobacion'],
             'fecha_limite' => $data['fechaLimite'] ?: null,
@@ -249,6 +264,146 @@ class Editor extends Component
         $this->modulo->archivos()->whereKey($archivoId)->first()?->delete();
     }
 
+    public function agregarVideo(): void
+    {
+        $data = $this->validate([
+            'nuevoVideoTitulo' => ['required', 'string', 'max:150'],
+            'nuevoVideoDescripcion' => ['nullable', 'string', 'max:1000'],
+            'nuevoVideoUrl' => ['required', 'string'],
+        ], [], [
+            'nuevoVideoTitulo' => 'título',
+            'nuevoVideoDescripcion' => 'descripción',
+            'nuevoVideoUrl' => 'link del video',
+        ]);
+
+        // OneDrive/YouTube, al usar "Insertar", copian un <iframe> completo en
+        // vez de un link suelto -- si detectamos eso, se extrae solo el src.
+        $src = $data['nuevoVideoUrl'];
+
+        if (str_contains($src, '<iframe') && preg_match('/<iframe[^>]*\bsrc="([^"]+)"/i', $src, $match)) {
+            $src = $match[1];
+        }
+
+        $embedUrl = $this->normalizarUrlVideo(trim($src));
+
+        if (! $embedUrl) {
+            $this->addError('nuevoVideoUrl', 'Pega un link de OneDrive ("Insertar"), YouTube o Vimeo, o el código <iframe> completo.');
+
+            return;
+        }
+
+        $this->modulo->videos()->create([
+            'titulo' => $data['nuevoVideoTitulo'],
+            'descripcion' => $data['nuevoVideoDescripcion'] ?: null,
+            'embed_url' => $embedUrl,
+            'orden' => $this->modulo->videos()->count() + 1,
+            'created_by' => auth()->id(),
+        ]);
+
+        $this->reset(['nuevoVideoTitulo', 'nuevoVideoDescripcion', 'nuevoVideoUrl']);
+        $this->resetValidation();
+        session()->flash('success', 'Video agregado.');
+    }
+
+    // Acepta OneDrive/SharePoint (ya vienen como link embebible, se usan tal
+    // cual), y normaliza los links normales de "compartir" de YouTube/Vimeo a
+    // su versión embebible -- un link de youtube.com/watch o vimeo.com/123 no
+    // se puede meter directo en un <iframe>, el sitio lo bloquea.
+    private function normalizarUrlVideo(string $src): ?string
+    {
+        if (! filter_var($src, FILTER_VALIDATE_URL)) {
+            return null;
+        }
+
+        $host = strtolower((string) parse_url($src, PHP_URL_HOST));
+
+        if (str_contains($host, 'onedrive') || str_contains($host, 'sharepoint')) {
+            return $src;
+        }
+
+        if (str_contains($host, 'youtube.com') || $host === 'youtu.be') {
+            return $this->embedDeYoutube($src);
+        }
+
+        if (str_contains($host, 'vimeo.com')) {
+            return $this->embedDeVimeo($src);
+        }
+
+        return null;
+    }
+
+    private function embedDeYoutube(string $url): ?string
+    {
+        $host = parse_url($url, PHP_URL_HOST);
+        $path = parse_url($url, PHP_URL_PATH) ?? '';
+        parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+
+        $id = match (true) {
+            $host === 'youtu.be' => trim($path, '/'),
+            str_starts_with($path, '/embed/') => substr($path, 7),
+            str_starts_with($path, '/shorts/') => substr($path, 8),
+            isset($query['v']) => $query['v'],
+            default => null,
+        };
+
+        return $id ? "https://www.youtube.com/embed/{$id}" : null;
+    }
+
+    private function embedDeVimeo(string $url): ?string
+    {
+        $path = parse_url($url, PHP_URL_PATH) ?? '';
+
+        if (str_starts_with($path, '/video/')) {
+            return 'https://player.vimeo.com'.$path;
+        }
+
+        if (preg_match('#^/(\d+)$#', $path, $match)) {
+            return "https://player.vimeo.com/video/{$match[1]}";
+        }
+
+        return null;
+    }
+
+    public function eliminarVideo(int $videoId): void
+    {
+        $this->modulo->videos()->whereKey($videoId)->first()?->delete();
+        session()->flash('success', 'Video eliminado.');
+    }
+
+    public function moverVideoArriba(int $videoId): void
+    {
+        $this->intercambiarOrdenVideo($videoId, -1);
+    }
+
+    public function moverVideoAbajo(int $videoId): void
+    {
+        $this->intercambiarOrdenVideo($videoId, 1);
+    }
+
+    private function intercambiarOrdenVideo(int $videoId, int $direccion): void
+    {
+        $videos = $this->modulo->videos()->get();
+        $indice = $videos->search(fn ($v) => $v->id === $videoId);
+
+        if ($indice === false) {
+            return;
+        }
+
+        $indiceVecino = $indice + $direccion;
+
+        if (! $videos->has($indiceVecino)) {
+            return;
+        }
+
+        $actual = $videos->get($indice);
+        $vecino = $videos->get($indiceVecino);
+
+        [$ordenActual, $ordenVecino] = [$actual->orden, $vecino->orden];
+
+        $actual->update(['orden' => $ordenVecino]);
+        $vecino->update(['orden' => $ordenActual]);
+    }
+
     public function render()
     {
         $archivos = $this->modulo->archivos()->get();
@@ -257,6 +412,7 @@ class Editor extends Component
             'preguntas' => $this->modulo->preguntas()->with('opciones')->get(),
             'archivosObligatorios' => $archivos->reject->esApoyo(),
             'archivosApoyo' => $archivos->filter->esApoyo(),
+            'videos' => $this->modulo->videos()->get(),
             'categorias' => Categoria::orderBy('nombre')->pluck('nombre'),
         ]);
     }

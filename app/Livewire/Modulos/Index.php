@@ -22,6 +22,8 @@ class Index extends Component
 
     public string $categoria = '';
 
+    public string $tipoInduccion = 'presencial';
+
     public string $contenido = '';
 
     public int $umbralAprobacion = 7;
@@ -91,7 +93,8 @@ class Index extends Component
     public function toggleCreateForm(): void
     {
         $this->showCreateForm = ! $this->showCreateForm;
-        $this->reset(['titulo', 'categoria', 'contenido', 'umbralAprobacion', 'fechaLimite', 'mostrandoNuevaCategoria', 'nuevaCategoria']);
+        $this->reset(['titulo', 'categoria', 'tipoInduccion', 'contenido', 'umbralAprobacion', 'fechaLimite', 'mostrandoNuevaCategoria', 'nuevaCategoria']);
+        $this->tipoInduccion = 'presencial';
         $this->umbralAprobacion = 7;
         $this->resetValidation();
     }
@@ -116,12 +119,14 @@ class Index extends Component
         $data = $this->validate([
             'titulo' => ['required', 'string', 'max:150'],
             'categoria' => ['required', 'string', 'in:'.implode(',', Categoria::pluck('nombre')->all())],
+            'tipoInduccion' => ['required', 'in:presencial,virtual'],
             'contenido' => ['nullable', 'string'],
             'umbralAprobacion' => ['required', 'integer', 'min:1', 'max:10'],
             'fechaLimite' => ['nullable', 'date'],
         ], [], [
             'titulo' => 'título',
             'categoria' => 'categoría',
+            'tipoInduccion' => 'tipo de inducción',
             'umbralAprobacion' => 'umbral de aprobación',
             'fechaLimite' => 'fecha límite',
         ]);
@@ -129,6 +134,7 @@ class Index extends Component
         $modulo = Modulo::create([
             'titulo' => $data['titulo'],
             'categoria' => $data['categoria'],
+            'tipo_induccion' => $data['tipoInduccion'],
             'contenido' => Modulo::limpiarContenido($data['contenido']),
             'umbral_aprobacion' => $data['umbralAprobacion'],
             'fecha_limite' => $data['fechaLimite'] ?: null,

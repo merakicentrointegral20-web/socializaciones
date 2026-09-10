@@ -57,6 +57,7 @@ class Certificado extends Model
             'nombre' => $this->user->name,
             'cedula' => $this->user->collaborator?->id_card,
             'moduloTitulo' => $this->modulo->titulo,
+            'esPresencial' => $this->modulo->esPresencial(),
             'fechaTexto' => "a los {$fecha->format('d')} días del mes de {$mesesEs[$fecha->month - 1]} del año {$fecha->format('Y')}",
         ])->setPaper('a4', 'portrait');
 

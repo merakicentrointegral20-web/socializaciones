@@ -5,12 +5,14 @@ use App\Livewire\Dashboard;
 use App\Livewire\MisModulos\Evaluacion as MisModulosEvaluacion;
 use App\Livewire\MisModulos\Index as MisModulosIndex;
 use App\Livewire\MisModulos\Show as MisModulosShow;
+use App\Livewire\Modulos\Asignacion as ModulosAsignacion;
 use App\Livewire\Modulos\Editor as ModulosEditor;
 use App\Livewire\Modulos\Index as ModulosIndex;
 use App\Livewire\Modulos\Seguimiento as ModulosSeguimiento;
 use App\Models\Certificado;
 use App\Models\Modulo;
 use App\Models\ModuloArchivo;
+use App\Models\User;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
@@ -50,6 +52,34 @@ Route::get('modulos/{modulo}', ModulosEditor::class)
 Route::get('modulos/{modulo}/seguimiento', ModulosSeguimiento::class)
     ->middleware(['auth', 'verified', 'elevated.2fa', 'can:modulos.crear'])
     ->name('modulos.seguimiento');
+
+Route::get('modulos/{modulo}/asignacion', ModulosAsignacion::class)
+    ->middleware(['auth', 'verified', 'elevated.2fa', 'can:modulos.crear'])
+    ->name('modulos.asignacion');
+
+// Acta de asignación: a diferencia del acta de inducción (en blanco, para
+// firmar en papel antes de la sesión), acá la cédula sí va rellenada -- ya
+// se sabe quién quedó asignado al momento de imprimir. Se calcula en vivo a
+// partir de la asignación actual del módulo, nunca se guarda en disco.
+Route::get('modulos/{modulo}/asignacion/acta', function (Modulo $modulo) {
+    abort_unless(
+        $modulo->created_by === auth()->id()
+            || auth()->user()->hasPermissionTo(config('xr_rrhh.manage_access_permission')),
+        403
+    );
+
+    $colaboradores = $modulo->asignado_a_todos
+        ? User::orderBy('name')->get()
+        : $modulo->asignaciones()->with('user.collaborator')->get()
+            ->pluck('user')->sortBy('name')->values();
+
+    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.acta-asignacion', [
+        'modulo' => $modulo,
+        'colaboradores' => $colaboradores,
+    ])->setPaper('a4', 'portrait');
+
+    return $pdf->stream("acta-asignacion-{$modulo->id}.pdf");
+})->middleware(['auth', 'verified'])->name('modulos.asignacion.acta');
 
 // Descarga de materiales: cualquier usuario autenticado puede ver los
 // archivos de cualquier módulo (no solo instructores) -- es justamente

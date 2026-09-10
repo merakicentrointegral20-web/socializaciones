@@ -13,9 +13,11 @@ class Modulo extends Model
         'titulo',
         'contenido',
         'categoria',
+        'tipo_induccion',
         'umbral_aprobacion',
         'fecha_limite',
         'activo',
+        'asignado_a_todos',
         'created_by',
     ];
 
@@ -25,6 +27,7 @@ class Modulo extends Model
             'umbral_aprobacion' => 'integer',
             'fecha_limite' => 'date',
             'activo' => 'boolean',
+            'asignado_a_todos' => 'boolean',
         ];
     }
 
@@ -84,5 +87,45 @@ class Modulo extends Model
     public function archivos(): HasMany
     {
         return $this->hasMany(ModuloArchivo::class)->orderBy('orden');
+    }
+
+    public function videos(): HasMany
+    {
+        return $this->hasMany(ModuloVideo::class)->orderBy('orden');
+    }
+
+    public function asignaciones(): HasMany
+    {
+        return $this->hasMany(ModuloAsignacion::class);
+    }
+
+    public function visiblePara(User $user): bool
+    {
+        return $this->asignado_a_todos
+            || $this->asignaciones()->where('user_id', $user->id)->exists();
+    }
+
+    public function esPresencial(): bool
+    {
+        return $this->tipo_induccion === 'presencial';
+    }
+
+    // Un módulo sin videos no bloquea la evaluación por este lado -- el
+    // desbloqueo secuencial estricto vive en marcarVideoCompletado() y acá solo
+    // se verifica que ya no quede ninguno pendiente.
+    public function todosLosVideosCompletados(int $userId): bool
+    {
+        $idsVideos = $this->videos()->pluck('id');
+
+        if ($idsVideos->isEmpty()) {
+            return true;
+        }
+
+        $completados = ModuloVideoProgreso::whereIn('modulo_video_id', $idsVideos)
+            ->where('user_id', $userId)
+            ->whereNotNull('completado_at')
+            ->count();
+
+        return $completados >= $idsVideos->count();
     }
 }

@@ -13,6 +13,8 @@ class Index extends Component
     {
         $modulos = Modulo::query()
             ->where('activo', true)
+            ->where(fn ($q) => $q->where('asignado_a_todos', true)
+                ->orWhereHas('asignaciones', fn ($q2) => $q2->where('user_id', auth()->id())))
             ->with([
                 'lecturas' => fn ($q) => $q->where('user_id', auth()->id()),
                 'certificados' => fn ($q) => $q->where('user_id', auth()->id()),
