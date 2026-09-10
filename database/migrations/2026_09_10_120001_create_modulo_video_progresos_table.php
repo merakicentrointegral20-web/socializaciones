@@ -10,10 +10,15 @@ return new class extends Migration
     {
         // Registra cuándo cada persona confirmó haber terminado un video --
         // mismo patrón que modulo_lecturas, pero por video en vez de por módulo.
+        //
+        // Sin llave foránea a propósito -- ver comentario en
+        // create_modulo_videos_table.php (falta el privilegio REFERENCES en
+        // el usuario de MySQL de producción). Cascada a nivel de aplicación
+        // en App\Models\ModuloVideo::booted().
         Schema::create('modulo_video_progresos', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('modulo_video_id')->constrained('modulo_videos')->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained('users');
+            $table->unsignedBigInteger('modulo_video_id')->index();
+            $table->unsignedBigInteger('user_id')->index();
             $table->dateTime('completado_at')->nullable();
             $table->timestamps();
 

@@ -8,6 +8,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ModuloVideo extends Model
 {
+    protected static function booted(): void
+    {
+        // Sin llave foránea a nivel de MySQL (ver comentario en
+        // Modulo::booted()) -- se limpia el progreso de cada colaborador acá.
+        static::deleting(function (ModuloVideo $video): void {
+            $video->progresos()->delete();
+        });
+    }
+
     protected $fillable = [
         'modulo_id',
         'titulo',

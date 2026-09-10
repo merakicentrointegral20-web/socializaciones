@@ -13,14 +13,20 @@ return new class extends Migration
         // define la secuencia de desbloqueo -- ver
         // App\Models\Modulo::todosLosVideosCompletados() y
         // App\Livewire\MisModulos\Show::marcarVideoCompletado().
+        //
+        // Sin llave foránea a propósito: el usuario de MySQL de producción
+        // (hosting compartido, Siteground) no tiene privilegio REFERENCES y
+        // no se puede conceder desde ahí (confirmado 2026-09-10, ver
+        // database/mysql-app-user.sql). El borrado en cascada se maneja a
+        // nivel de aplicación en App\Models\Modulo::booted().
         Schema::create('modulo_videos', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('modulo_id')->constrained('modulos')->cascadeOnDelete();
+            $table->unsignedBigInteger('modulo_id')->index();
             $table->string('titulo');
             $table->text('descripcion')->nullable();
             $table->string('embed_url', 1000);
             $table->unsignedInteger('orden')->default(0);
-            $table->foreignId('created_by')->constrained('users');
+            $table->unsignedBigInteger('created_by');
             $table->timestamps();
         });
     }

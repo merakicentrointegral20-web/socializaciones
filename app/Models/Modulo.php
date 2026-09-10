@@ -39,6 +39,16 @@ class Modulo extends Model
             // ModuloArchivo (que borraría el archivo físico). Se borra
             // aquí todo el directorio del módulo para no dejar huérfanos.
             Storage::disk('local')->deleteDirectory('modulos/'.$modulo->id);
+
+            // modulo_videos y modulo_asignaciones NO tienen llave foránea a
+            // nivel de MySQL (el usuario de producción no tiene el
+            // privilegio REFERENCES y el hosting no lo concede -- ver
+            // database/mysql-app-user.sql), así que la cascada se hace acá.
+            // ->each()->delete() (no un delete() masivo) para que también
+            // dispare el evento "deleting" de ModuloVideo y limpie sus
+            // progresos.
+            $modulo->videos()->get()->each->delete();
+            $modulo->asignaciones()->delete();
         });
     }
 

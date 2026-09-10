@@ -11,11 +11,16 @@ return new class extends Migration
         // Asignación puntual de un módulo a colaboradores concretos. Solo aplica
         // cuando modulos.asignado_a_todos es false -- ver
         // App\Models\Modulo::visiblePara().
+        //
+        // Sin llave foránea a propósito -- ver comentario en
+        // create_modulo_videos_table.php (falta el privilegio REFERENCES en
+        // el usuario de MySQL de producción). Cascada a nivel de aplicación
+        // en App\Models\Modulo::booted().
         Schema::create('modulo_asignaciones', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('modulo_id')->constrained('modulos')->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained('users');
-            $table->foreignId('assigned_by')->constrained('users');
+            $table->unsignedBigInteger('modulo_id')->index();
+            $table->unsignedBigInteger('user_id')->index();
+            $table->unsignedBigInteger('assigned_by');
             $table->timestamps();
 
             $table->unique(['modulo_id', 'user_id']);
