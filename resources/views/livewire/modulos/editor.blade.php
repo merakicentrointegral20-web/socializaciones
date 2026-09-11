@@ -261,7 +261,7 @@
                 </div>
             </div>
 
-            {{-- ─── Videos (OneDrive, YouTube o Vimeo) ────────────────────────── --}}
+            {{-- ─── Videos (OneDrive, Google Drive, YouTube o Vimeo) ─────────────── --}}
             <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div class="p-6 border-b border-gray-100">
                     <h3 class="font-medium text-gray-900">Videos</h3>
@@ -319,7 +319,7 @@
 
                     <div>
                         <x-input-label for="nuevoVideoUrl" value="Link del video" />
-                        <textarea wire:model="nuevoVideoUrl" id="nuevoVideoUrl" rows="2" class="w-full rounded-lg border-gray-300 text-sm focus:border-brand-500 focus:ring-brand-500" placeholder="OneDrive (link de Insertar), YouTube o Vimeo..."></textarea>
+                        <textarea wire:model="nuevoVideoUrl" id="nuevoVideoUrl" rows="2" class="w-full rounded-lg border-gray-300 text-sm focus:border-brand-500 focus:ring-brand-500" placeholder="OneDrive (link de Insertar), Google Drive, YouTube o Vimeo..."></textarea>
                         <x-input-error :messages="$errors->get('nuevoVideoUrl')" class="mt-1" />
                     </div>
 

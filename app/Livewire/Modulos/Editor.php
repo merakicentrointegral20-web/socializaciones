@@ -287,7 +287,7 @@ class Editor extends Component
         $embedUrl = $this->normalizarUrlVideo(trim($src));
 
         if (! $embedUrl) {
-            $this->addError('nuevoVideoUrl', 'Pega un link de OneDrive ("Insertar"), YouTube o Vimeo, o el código <iframe> completo.');
+            $this->addError('nuevoVideoUrl', 'Pega un link de OneDrive ("Insertar"), Google Drive, YouTube o Vimeo, o el código <iframe> completo.');
 
             return;
         }
@@ -306,9 +306,10 @@ class Editor extends Component
     }
 
     // Acepta OneDrive/SharePoint (ya vienen como link embebible, se usan tal
-    // cual), y normaliza los links normales de "compartir" de YouTube/Vimeo a
-    // su versión embebible -- un link de youtube.com/watch o vimeo.com/123 no
-    // se puede meter directo en un <iframe>, el sitio lo bloquea.
+    // cual), y normaliza los links normales de "compartir" de YouTube/Vimeo/
+    // Google Drive a su versión embebible -- un link de youtube.com/watch,
+    // vimeo.com/123 o drive.google.com/.../view no se puede meter directo en
+    // un <iframe>, el sitio lo bloquea.
     private function normalizarUrlVideo(string $src): ?string
     {
         if (! filter_var($src, FILTER_VALIDATE_URL)) {
@@ -327,6 +328,10 @@ class Editor extends Component
 
         if (str_contains($host, 'vimeo.com')) {
             return $this->embedDeVimeo($src);
+        }
+
+        if (str_contains($host, 'drive.google.com')) {
+            return $this->embedDeGoogleDrive($src);
         }
 
         return null;
@@ -359,6 +364,25 @@ class Editor extends Component
 
         if (preg_match('#^/(\d+)$#', $path, $match)) {
             return "https://player.vimeo.com/video/{$match[1]}";
+        }
+
+        return null;
+    }
+
+    // Un link de "Compartir" de Google Drive (/file/d/ID/view) no se puede
+    // meter directo en un <iframe>, hay que usar la versión "/preview".
+    private function embedDeGoogleDrive(string $url): ?string
+    {
+        $path = parse_url($url, PHP_URL_PATH) ?? '';
+
+        if (preg_match('#^/file/d/([^/]+)#', $path, $match)) {
+            return "https://drive.google.com/file/d/{$match[1]}/preview";
+        }
+
+        parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+
+        if (isset($query['id'])) {
+            return "https://drive.google.com/file/d/{$query['id']}/preview";
         }
 
         return null;
