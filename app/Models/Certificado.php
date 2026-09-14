@@ -55,7 +55,7 @@ class Certificado extends Model
         $pdf = Pdf::loadView('pdf.certificado', [
             'certificado' => $this,
             'nombre' => $this->user->name,
-            'cedula' => $this->user->collaborator?->id_card,
+            'cedula' => $this->user->id_card,
             'moduloTitulo' => $this->modulo->titulo,
             'esPresencial' => $this->modulo->esPresencial(),
             'fechaTexto' => "a los {$fecha->format('d')} días del mes de {$mesesEs[$fecha->month - 1]} del año {$fecha->format('Y')}",

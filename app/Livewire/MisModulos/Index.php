@@ -18,7 +18,7 @@ class Index extends Component
             ->with([
                 'lecturas' => fn ($q) => $q->where('user_id', auth()->id()),
                 'certificados' => fn ($q) => $q->where('user_id', auth()->id()),
-                'evaluacionIntentos' => fn ($q) => $q->where('user_id', auth()->id())->orderByDesc('completed_at'),
+                'evaluacionIntentos' => fn ($q) => $q->where('user_id', auth()->id())->orderByDesc('completed_at')->orderByDesc('id'),
             ])
             ->orderBy('categoria')
             ->orderBy('titulo')

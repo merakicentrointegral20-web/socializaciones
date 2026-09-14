@@ -61,6 +61,7 @@ class Show extends Component
         $this->ultimoIntento = EvaluacionIntento::where('user_id', auth()->id())
             ->where('modulo_id', $modulo->id)
             ->orderByDesc('completed_at')
+            ->orderByDesc('id')
             ->first();
 
         $this->certificado = Certificado::where('user_id', auth()->id())

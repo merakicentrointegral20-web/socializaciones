@@ -119,7 +119,7 @@
             @foreach ($colaboradores as $colaborador)
                 <tr>
                     <td class="nombre">{{ $colaborador->name }}</td>
-                    <td class="cedula">{{ $colaborador->collaborator?->id_card ?? '—' }}</td>
+                    <td class="cedula">{{ $colaborador->id_card ?? '—' }}</td>
                     <td class="firma">&nbsp;</td>
                 </tr>
             @endforeach

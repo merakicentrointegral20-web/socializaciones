@@ -340,7 +340,7 @@ class Seguimiento extends Component
             ->orderBy('name')
             ->with([
                 'moduloLecturas' => fn ($q) => $q->where('modulo_id', $this->modulo->id),
-                'evaluacionIntentos' => fn ($q) => $q->where('modulo_id', $this->modulo->id)->orderByDesc('completed_at'),
+                'evaluacionIntentos' => fn ($q) => $q->where('modulo_id', $this->modulo->id)->orderByDesc('completed_at')->orderByDesc('id'),
                 'certificados' => fn ($q) => $q->where('modulo_id', $this->modulo->id),
                 'capacitacionAsistencias' => fn ($q) => $q
                     ->whereHas('capacitacion', fn ($q2) => $q2->where('modulo_id', $this->modulo->id))
