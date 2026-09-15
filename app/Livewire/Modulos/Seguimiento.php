@@ -350,8 +350,17 @@ class Seguimiento extends Component
             ->map(function (User $usuario) {
                 $lectura = $usuario->moduloLecturas->first();
                 $induccion = $usuario->capacitacionAsistencias->sortByDesc(fn ($a) => $a->capacitacion->fecha)->first();
-                $evaluacion = $usuario->evaluacionIntentos->first();
                 $certificado = $usuario->certificados->first();
+
+                // Si ya tiene certificado, se muestra el intento que lo generó
+                // (el que aprobó), no el último intento registrado -- podría
+                // haber uno posterior reprobado (ej. retomó el módulo) que de
+                // otro modo lo dejaría viéndose como "reprobado" aunque ya
+                // esté certificado.
+                $evaluacion = $certificado
+                    ? $usuario->evaluacionIntentos->firstWhere('id', $certificado->evaluacion_intento_id)
+                    : null;
+                $evaluacion ??= $usuario->evaluacionIntentos->first();
 
                 return (object) [
                     'usuario' => $usuario,
