@@ -99,6 +99,23 @@ class GestionAcceso extends Component
         $this->dispatch('close-modal', 'confirm-toggle');
     }
 
+    // Marca/desmarca una cuenta como "solo supervisión": deja de aparecer en
+    // actas, seguimiento y conteos de pendientes. Sin modal de confirmación
+    // porque no quita ni da acceso a nada, solo la oculta de esas listas.
+    public function toggleSupervision(int $userId): void
+    {
+        $user = User::findOrFail($userId);
+        $role = \Spatie\Permission\Models\Role::findOrCreate(config('xr_rrhh.supervision_role'), 'web');
+
+        if ($user->hasRole($role)) {
+            $user->removeRole($role);
+            session()->flash('success', "{$user->name} vuelve a aparecer en actas y seguimiento.");
+        } else {
+            $user->assignRole($role);
+            session()->flash('success', "{$user->name} quedó como solo supervisión: ya no sale en actas ni en seguimiento.");
+        }
+    }
+
     public function render()
     {
         $people = User::query()
@@ -113,6 +130,7 @@ class GestionAcceso extends Component
         return view('livewire.colaboradores.gestion-acceso', [
             'people' => $people,
             'instructorRole' => config('xr_rrhh.instructor_role'),
+            'supervisionRole' => config('xr_rrhh.supervision_role'),
             'totalConCuenta' => User::count(),
             'totalInstructores' => User::role(config('xr_rrhh.instructor_role'))->count(),
         ]);

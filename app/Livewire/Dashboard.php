@@ -25,7 +25,7 @@ class Dashboard extends Component
             ->orderBy('titulo')
             ->get();
 
-        $totalNomina = User::count();
+        $totalNomina = User::participantes()->count();
 
         $certificadosPorModulo = Certificado::whereIn('modulo_id', $modulos->pluck('id'))
             ->get()
@@ -47,7 +47,7 @@ class Dashboard extends Component
             ->groupBy('user_id')
             ->map(fn ($rows) => $rows->pluck('modulo_id')->all());
 
-        $personasConPendientes = User::orderBy('name')
+        $personasConPendientes = User::participantes()->orderBy('name')
             ->get()
             ->map(function (User $user) use ($modulos, $certificadosPorUsuario) {
                 $completados = $certificadosPorUsuario->get($user->id, []);

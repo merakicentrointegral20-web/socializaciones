@@ -46,7 +46,8 @@
                     <h3 class="font-medium text-gray-900">Personal <span class="text-gray-400 font-normal">({{ $totalConCuenta }})</span></h3>
                     <p class="text-xs text-gray-500 mt-1">
                         Cuentas, cédula, celular y área se administran desde Xuri Apex — acá solo se muestran, en solo lectura.
-                        Lo único que se gestiona desde xr-rrhh es quién es instructor (crea módulos y capacitaciones).
+                        Lo único que se gestiona desde xr-rrhh es quién es instructor (crea módulos y capacitaciones)
+                        y quién es solo supervisión (no sale en actas, seguimiento ni pendientes).
                     </p>
                 </div>
 
@@ -59,13 +60,15 @@
                                 <th class="px-6 py-3.5 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider bg-gray-100/80 border-b border-gray-200">Área</th>
                                 <th class="px-6 py-3.5 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider bg-gray-100/80 border-b border-gray-200">Celular</th>
                                 <th class="px-6 py-3.5 text-center text-[11px] font-semibold text-gray-500 uppercase tracking-wider bg-gray-100/80 border-b border-gray-200">Instructor</th>
+                                <th class="px-6 py-3.5 text-center text-[11px] font-semibold text-gray-500 uppercase tracking-wider bg-gray-100/80 border-b border-gray-200">Solo supervisión</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse ($people as $person)
                                 @php
                                     $esInstructor = $person->hasRole($instructorRole);
-                                    $areaRoles = $person->roles->pluck('name')->reject(fn ($r) => $r === $instructorRole);
+                                    $esSupervision = $person->roles->contains('name', $supervisionRole);
+                                    $areaRoles = $person->roles->pluck('name')->reject(fn ($r) => in_array($r, [$instructorRole, $supervisionRole]));
                                 @endphp
                                 <tr class="odd:bg-white even:bg-gray-50/60 hover:bg-brand-50/50 transition-colors duration-150">
                                     <td class="px-6 py-4 align-middle border-b border-gray-100">
@@ -93,10 +96,15 @@
                                             <x-toggle-switch wire:click="askToggleInstructor({{ $person->id }})" :on="$esInstructor" title="Instructor para {{ $person->name }}" class="p-3 -m-3 rounded-lg hover:bg-white/80" />
                                         </div>
                                     </td>
+                                    <td class="px-6 py-4 align-middle border-b border-gray-100">
+                                        <div class="flex justify-center">
+                                            <x-toggle-switch wire:click="toggleSupervision({{ $person->id }})" :on="$esSupervision" title="Solo supervisión para {{ $person->name }}" class="p-3 -m-3 rounded-lg hover:bg-white/80" />
+                                        </div>
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="p-10 text-center text-sm text-gray-400">No se encontraron cuentas.</td>
+                                    <td colspan="6" class="p-10 text-center text-sm text-gray-400">No se encontraron cuentas.</td>
                                 </tr>
                             @endforelse
                         </tbody>

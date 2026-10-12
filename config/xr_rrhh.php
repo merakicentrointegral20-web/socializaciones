@@ -18,6 +18,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Rol de solo supervisión
+    |--------------------------------------------------------------------------
+    |
+    | Cuentas que entran solo a supervisar (jefaturas, auditoría, etc.) y no
+    | toman los módulos: no salen en las actas, en el seguimiento ni en los
+    | conteos de pendientes. Se activa desde la pantalla de Personal.
+    |
+    */
+
+    'supervision_role' => 'supervision',
+
+    /*
+    |--------------------------------------------------------------------------
     | Permiso de gestión de acceso
     |--------------------------------------------------------------------------
     |

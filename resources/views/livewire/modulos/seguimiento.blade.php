@@ -38,9 +38,14 @@
                     </p>
                     <x-input-error :messages="$errors->get('seleccionados')" class="mt-1" />
                 </div>
-                <x-primary-button wire:click="abrirModalInduccion" wire:loading.attr="disabled">
-                    Agendar inducción
-                </x-primary-button>
+                <div class="flex flex-wrap items-center gap-3">
+                    <a href="{{ route('modulos.certificados.zip', $modulo) }}" class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50">
+                        Descargar certificados (ZIP)
+                    </a>
+                    <x-primary-button wire:click="abrirModalInduccion" wire:loading.attr="disabled">
+                        Agendar inducción
+                    </x-primary-button>
+                </div>
             </div>
 
             <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto">

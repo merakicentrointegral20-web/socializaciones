@@ -336,7 +336,7 @@ class Seguimiento extends Component
 
     public function render()
     {
-        $filas = User::query()
+        $filas = User::participantes()
             ->orderBy('name')
             ->with([
                 'moduloLecturas' => fn ($q) => $q->where('modulo_id', $this->modulo->id),
@@ -390,7 +390,7 @@ class Seguimiento extends Component
         // Para el modal de reagendar: a quién se puede agregar todavía --
         // mismo criterio que habilita el checkbox en la tabla principal
         // (leyó el módulo, sin inducción agendada en ninguna sesión de él).
-        $candidatosParaAgregar = User::query()
+        $candidatosParaAgregar = User::participantes()
             ->orderBy('name')
             ->whereHas('moduloLecturas', fn ($q) => $q
                 ->where('modulo_id', $this->modulo->id)

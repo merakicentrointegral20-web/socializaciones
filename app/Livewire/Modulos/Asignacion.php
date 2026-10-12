@@ -64,7 +64,7 @@ class Asignacion extends Component
 
     public function render()
     {
-        $colaboradores = User::query()
+        $colaboradores = User::participantes()
             ->orderBy('name')
             ->when($this->search, fn ($q) => $q
                 ->where('name', 'like', "%{$this->search}%")

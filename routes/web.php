@@ -15,6 +15,7 @@ use App\Models\ModuloArchivo;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 Route::get('/', function () {
     return auth()->check()
@@ -69,9 +70,10 @@ Route::get('modulos/{modulo}/asignacion/acta', function (Modulo $modulo) {
     );
 
     $colaboradores = $modulo->asignado_a_todos
-        ? User::orderBy('name')->get()
-        : $modulo->asignaciones()->with('user.collaborator')->get()
-            ->pluck('user')->sortBy('name')->values();
+        ? User::participantes()->orderBy('name')->get()
+        : $modulo->asignaciones()->with('user.collaborator', 'user.roles')->get()
+            ->pluck('user')->filter()->reject(fn (User $u) => $u->esSoloSupervision())
+            ->sortBy('name')->values();
 
     $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.acta-asignacion', [
         'modulo' => $modulo,
@@ -123,7 +125,9 @@ Route::get('modulos/{modulo}/capacitaciones/{capacitacion}/acta/imprimir', funct
 
     $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.acta-induccion', [
         'capacitacion' => $capacitacion->load('modulo', 'instructor'),
-        'asistentes' => $capacitacion->asistentes()->with('user')->get()->sortBy(fn ($a) => $a->user->name)->values(),
+        'asistentes' => $capacitacion->asistentes()->with('user.roles')->get()
+            ->reject(fn ($a) => $a->user->esSoloSupervision())
+            ->sortBy(fn ($a) => $a->user->name)->values(),
     ])->setPaper('a4', 'portrait');
 
     return $pdf->stream("acta-induccion-{$capacitacion->id}.pdf");
@@ -152,5 +156,44 @@ Route::get('certificados/{certificado}/pdf', function (Certificado $certificado)
 
     return Storage::disk('local')->response($certificado->pdf_path, "certificado-{$certificado->numero}.pdf");
 })->middleware(['auth', 'verified'])->name('certificados.pdf');
+
+// Descarga en lote de todos los certificados emitidos de un módulo, en un
+// ZIP (un PDF por persona). Mismo criterio de acceso que Seguimiento. Si a
+// algún certificado le falta el PDF en disco, se regenera al vuelo.
+Route::get('modulos/{modulo}/certificados/zip', function (Modulo $modulo) {
+    abort_unless(
+        $modulo->created_by === auth()->id()
+            || auth()->user()->hasPermissionTo(config('xr_rrhh.manage_access_permission')),
+        403
+    );
+
+    $certificados = $modulo->certificados()->with('user', 'modulo')->get()
+        ->sortBy(fn (Certificado $c) => $c->user->name);
+
+    if ($certificados->isEmpty()) {
+        return back()->with('error', 'Este módulo todavía no tiene certificados emitidos.');
+    }
+
+    $zipPath = tempnam(sys_get_temp_dir(), 'cert');
+    $zip = new ZipArchive;
+    $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+
+    foreach ($certificados as $certificado) {
+        if (! $certificado->pdf_path || ! Storage::disk('local')->exists($certificado->pdf_path)) {
+            $certificado->generarPdf();
+        }
+
+        $nombre = Str::slug($certificado->user->name, '_');
+        $zip->addFromString(
+            "certificado-{$certificado->numero}-{$nombre}.pdf",
+            Storage::disk('local')->get($certificado->pdf_path)
+        );
+    }
+
+    $zip->close();
+
+    return response()->download($zipPath, 'certificados-'.Str::slug($modulo->titulo).'.zip')
+        ->deleteFileAfterSend();
+})->middleware(['auth', 'verified'])->name('modulos.certificados.zip');
 
 require __DIR__.'/auth.php';

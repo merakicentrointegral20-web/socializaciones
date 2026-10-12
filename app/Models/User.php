@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -66,6 +67,18 @@ class User extends Authenticatable
     public function rutaInicio(): string
     {
         return $this->can('modulos.crear') ? 'dashboard' : 'mis-modulos.index';
+    }
+
+    // Quien toma los módulos: todos menos las cuentas marcadas como "solo
+    // supervisión" (ver config xr_rrhh.supervision_role).
+    public function scopeParticipantes(Builder $query): void
+    {
+        $query->whereDoesntHave('roles', fn ($q) => $q->where('name', config('xr_rrhh.supervision_role')));
+    }
+
+    public function esSoloSupervision(): bool
+    {
+        return $this->roles->contains('name', config('xr_rrhh.supervision_role'));
     }
 
     public function modulosCreados(): HasMany
