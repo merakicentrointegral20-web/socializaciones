@@ -42,6 +42,11 @@
                     <a href="{{ route('modulos.certificados.zip', $modulo) }}" class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50">
                         Descargar certificados (ZIP)
                     </a>
+                    @foreach (array_keys(config('xr_rrhh.certificado_periodos')) as $periodo)
+                        <a href="{{ route('modulos.certificados.periodo.zip', [$modulo, $periodo]) }}" class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50">
+                            Certificados {{ $periodo }} (ZIP)
+                        </a>
+                    @endforeach
                     <x-primary-button wire:click="abrirModalInduccion" wire:loading.attr="disabled">
                         Agendar inducción
                     </x-primary-button>
@@ -58,6 +63,9 @@
                             <th class="p-4 text-left font-medium">Inducción</th>
                             <th class="p-4 text-left font-medium">Evaluación</th>
                             <th class="p-4 text-left font-medium">Certificado</th>
+                            @foreach (array_keys(config('xr_rrhh.certificado_periodos')) as $periodo)
+                                <th class="p-4 text-left font-medium">{{ $periodo }}</th>
+                            @endforeach
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-50">
@@ -120,10 +128,21 @@
                                         <span class="text-xs text-gray-300">—</span>
                                     @endif
                                 </td>
+                                @foreach (array_keys(config('xr_rrhh.certificado_periodos')) as $periodo)
+                                    <td class="p-4">
+                                        @if ($fila->certificado)
+                                            <a href="{{ route('certificados.periodo.pdf', [$fila->certificado, $periodo]) }}" target="_blank" class="inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700 hover:bg-purple-100">
+                                                {{ $fila->certificado->fechaEmisionPeriodo($periodo)->format('d/m/Y') }} · PDF
+                                            </a>
+                                        @else
+                                            <span class="text-xs text-gray-300">—</span>
+                                        @endif
+                                    </td>
+                                @endforeach
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="p-10 text-center text-sm text-gray-400">Nadie coincide con este filtro.</td>
+                                <td colspan="{{ 6 + count(config('xr_rrhh.certificado_periodos')) }}" class="p-10 text-center text-sm text-gray-400">Nadie coincide con este filtro.</td>
                             </tr>
                         @endforelse
                     </tbody>

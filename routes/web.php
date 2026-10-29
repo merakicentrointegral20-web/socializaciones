@@ -157,6 +157,21 @@ Route::get('certificados/{certificado}/pdf', function (Certificado $certificado)
     return Storage::disk('local')->response($certificado->pdf_path, "certificado-{$certificado->numero}.pdf");
 })->middleware(['auth', 'verified'])->name('certificados.pdf');
 
+// Versión por período de un certificado (ver config('xr_rrhh.certificado_periodos')),
+// armada al vuelo. Mismo criterio de acceso que el PDF original.
+Route::get('certificados/{certificado}/periodo/{periodo}/pdf', function (Certificado $certificado, int $periodo) {
+    abort_unless(
+        $certificado->user_id === auth()->id() || $certificado->modulo->created_by === auth()->id(),
+        403
+    );
+    abort_unless(array_key_exists($periodo, config('xr_rrhh.certificado_periodos')), 404);
+
+    return response($certificado->pdfPeriodo($periodo), 200, [
+        'Content-Type' => 'application/pdf',
+        'Content-Disposition' => "inline; filename=\"certificado-{$periodo}-{$certificado->numero}.pdf\"",
+    ]);
+})->whereNumber('periodo')->middleware(['auth', 'verified'])->name('certificados.periodo.pdf');
+
 // Descarga en lote de todos los certificados emitidos de un módulo, en un
 // ZIP (un PDF por persona). Mismo criterio de acceso que Seguimiento. Si a
 // algún certificado le falta el PDF en disco, se regenera al vuelo.
@@ -195,5 +210,41 @@ Route::get('modulos/{modulo}/certificados/zip', function (Modulo $modulo) {
     return response()->download($zipPath, 'certificados-'.Str::slug($modulo->titulo).'.zip')
         ->deleteFileAfterSend();
 })->middleware(['auth', 'verified'])->name('modulos.certificados.zip');
+
+// Igual que el anterior, pero con la versión por período del certificado
+// (Duración + Período + su propia fecha de emisión, ver
+// config('xr_rrhh.certificado_periodos')). Se arma al vuelo, no se guarda.
+Route::get('modulos/{modulo}/certificados/periodo/{periodo}/zip', function (Modulo $modulo, int $periodo) {
+    abort_unless(
+        $modulo->created_by === auth()->id()
+            || auth()->user()->hasPermissionTo(config('xr_rrhh.manage_access_permission')),
+        403
+    );
+    abort_unless(array_key_exists($periodo, config('xr_rrhh.certificado_periodos')), 404);
+
+    $certificados = $modulo->certificados()->with('user', 'modulo')->get()
+        ->sortBy(fn (Certificado $c) => $c->user->name);
+
+    if ($certificados->isEmpty()) {
+        return back()->with('error', 'Este módulo todavía no tiene certificados emitidos.');
+    }
+
+    $zipPath = tempnam(sys_get_temp_dir(), 'cert');
+    $zip = new ZipArchive;
+    $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+
+    foreach ($certificados as $certificado) {
+        $nombre = Str::slug($certificado->user->name, '_');
+        $zip->addFromString(
+            "certificado-{$periodo}-{$certificado->numero}-{$nombre}.pdf",
+            $certificado->pdfPeriodo($periodo)
+        );
+    }
+
+    $zip->close();
+
+    return response()->download($zipPath, "certificados-{$periodo}-".Str::slug($modulo->titulo).'.zip')
+        ->deleteFileAfterSend();
+})->whereNumber('periodo')->middleware(['auth', 'verified'])->name('modulos.certificados.periodo.zip');
 
 require __DIR__.'/auth.php';

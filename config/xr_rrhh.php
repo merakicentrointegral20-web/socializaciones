@@ -74,4 +74,21 @@ return [
 
     'certificado_firma' => public_path('img/firma-antonio-ordonez.png'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Certificados por período
+    |--------------------------------------------------------------------------
+    |
+    | Versiones extra del certificado (con Duración y Período) que se
+    | descargan en ZIP desde Seguimiento. `emision` null = fecha del día de
+    | la descarga; un rango [desde, hasta] = una fecha dentro de ese rango,
+    | fija por certificado para que no todos salgan con el mismo día.
+    |
+    */
+
+    'certificado_periodos' => [
+        2025 => ['duracion' => '10 horas', 'emision' => null],
+        2026 => ['duracion' => '10 horas', 'emision' => ['2026-12-14', '2026-12-18']],
+    ],
+
 ];

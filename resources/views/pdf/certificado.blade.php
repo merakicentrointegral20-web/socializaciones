@@ -168,6 +168,18 @@
                     <td class="etiqueta">Socialización:</td>
                     <td class="valor">{{ $moduloTitulo }}</td>
                 </tr>
+                @if ($duracion)
+                    <tr>
+                        <td class="etiqueta">Duración:</td>
+                        <td class="valor">{{ $duracion }}</td>
+                    </tr>
+                @endif
+                @if ($periodo)
+                    <tr>
+                        <td class="etiqueta">Período:</td>
+                        <td class="valor">{{ $periodo }}</td>
+                    </tr>
+                @endif
             </table>
 
             <p class="intro">
@@ -200,7 +212,7 @@
             </div>
 
             <div class="pie">
-                <div>Emitido el {{ $certificado->emitido_at->format('d/m/Y') }}</div>
+                <div>Emitido el {{ $fechaEmision->format('d/m/Y') }}</div>
                 <div class="codigo">Código de verificación: {{ $certificado->codigo_verificacion }}</div>
             </div>
         </div>

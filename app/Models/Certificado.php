@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\CarbonInterface;
+use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
@@ -45,28 +47,56 @@ class Certificado extends Model
 
     public function generarPdf(): string
     {
+        $path = 'certificados/'.$this->id.'.pdf';
+        Storage::disk('local')->put($path, $this->renderizarPdf($this->emitido_at));
+
+        $this->update(['pdf_path' => $path]);
+
+        return $path;
+    }
+
+    // Versión del certificado para un período de config('xr_rrhh.certificado_periodos').
+    // No se guarda en disco: se arma al vuelo en cada descarga.
+    public function pdfPeriodo(int $periodo): string
+    {
+        return $this->renderizarPdf($this->fechaEmisionPeriodo($periodo), [
+            'duracion' => config("xr_rrhh.certificado_periodos.{$periodo}.duracion"),
+            'periodo' => $periodo,
+        ]);
+    }
+
+    public function fechaEmisionPeriodo(int $periodo): CarbonInterface
+    {
+        $rango = config("xr_rrhh.certificado_periodos.{$periodo}.emision");
+
+        if (! $rango) {
+            return now();
+        }
+
+        $desde = Carbon::parse($rango[0]);
+        $dias = (int) $desde->diffInDays(Carbon::parse($rango[1])) + 1;
+
+        return $desde->addDays($this->id % $dias);
+    }
+
+    private function renderizarPdf(CarbonInterface $fecha, array $periodo = []): string
+    {
         $mesesEs = [
             'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
             'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
         ];
 
-        $fecha = $this->emitido_at;
-
-        $pdf = Pdf::loadView('pdf.certificado', [
+        return Pdf::loadView('pdf.certificado', [
             'certificado' => $this,
             'nombre' => $this->user->name,
             'cedula' => $this->user->id_card,
             'moduloTitulo' => $this->modulo->titulo,
             'esPresencial' => $this->modulo->esPresencial(),
+            'duracion' => $periodo['duracion'] ?? null,
+            'periodo' => $periodo['periodo'] ?? null,
+            'fechaEmision' => $fecha,
             'fechaTexto' => "a los {$fecha->format('d')} días del mes de {$mesesEs[$fecha->month - 1]} del año {$fecha->format('Y')}",
-        ])->setPaper('a4', 'portrait');
-
-        $path = 'certificados/'.$this->id.'.pdf';
-        Storage::disk('local')->put($path, $pdf->output());
-
-        $this->update(['pdf_path' => $path]);
-
-        return $path;
+        ])->setPaper('a4', 'portrait')->output();
     }
 
     public function user(): BelongsTo
