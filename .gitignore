@@ -3,6 +3,7 @@
 .env
 .env.backup
 .env.production
+dimeloclaude.txt
 .phpactor.json
 .phpunit.result.cache
 /.fleet
@@ -27,3 +28,6 @@ __pycache__/
 Homestead.json
 Homestead.yaml
 Thumbs.db
+*.sqlite
+*.sqlite-journal
+.claude/

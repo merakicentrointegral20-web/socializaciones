@@ -337,6 +337,7 @@ class Seguimiento extends Component
     public function render()
     {
         $filas = User::participantes()
+            ->when(! $this->modulo->asignado_a_todos, fn ($q) => $q->whereHas('moduloAsignaciones', fn ($q2) => $q2->where('modulo_id', $this->modulo->id)))
             ->orderBy('name')
             ->with([
                 'moduloLecturas' => fn ($q) => $q->where('modulo_id', $this->modulo->id),
@@ -370,7 +371,7 @@ class Seguimiento extends Component
                     'certificado' => $certificado,
                     'estado' => match (true) {
                         ! $lectura?->leido_at => 'falta_leer',
-                        ! $induccion => 'falta_induccion',
+                        $this->modulo->esPresencial() && (! $induccion || ! $induccion->asistio) => 'falta_induccion',
                         ! $certificado && ! $evaluacion?->aprobado => 'falta_evaluacion',
                         ! $certificado => 'falta_certificado',
                         default => 'completo',

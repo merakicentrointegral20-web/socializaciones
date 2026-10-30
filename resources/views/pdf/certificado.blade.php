@@ -12,13 +12,13 @@
         }
 
         .marco {
-            border: 2pt solid #1a4c9a;
+            border: 2pt solid #681878;
             padding: 16pt;
             margin: 12pt;
         }
 
         .marco-interno {
-            border: 0.75pt solid #b3cdef;
+            border: 1pt solid #f472b6;
             padding: 22pt 34pt;
         }
 
@@ -27,30 +27,33 @@
         }
 
         .logo img {
-            height: 48pt;
+            height: 52pt;
+            object-fit: contain;
         }
 
         .empresa {
             text-align: center;
             font-size: 8.5pt;
-            letter-spacing: 1pt;
-            color: #6b7280;
-            margin-top: 3pt;
+            letter-spacing: 1.5pt;
+            color: #681878;
+            font-weight: bold;
+            margin-top: 4pt;
             text-transform: uppercase;
         }
 
         h1 {
             text-align: center;
             font-size: 16pt;
-            color: #143363;
+            color: #681878;
             letter-spacing: 0.5pt;
             margin: 12pt 0 2pt;
         }
 
         .numero {
             text-align: center;
-            font-size: 9pt;
-            color: #2c65b8;
+            font-size: 9.5pt;
+            font-weight: bold;
+            color: #e6007e;
             margin-bottom: 12pt;
         }
 
@@ -77,7 +80,7 @@
 
         .datos .valor {
             font-weight: bold;
-            color: #143363;
+            color: #681878;
         }
 
         ol {
@@ -93,7 +96,7 @@
         }
 
         ol b {
-            color: #143363;
+            color: #681878;
         }
 
         .firma {
@@ -206,8 +209,8 @@
                     <img class="firma-img" src="{{ config('xr_rrhh.certificado_firma') }}" alt="Firma">
                 @endif
                 <div class="linea">&nbsp;</div>
-                <div class="cargo">Lcdo. Antonio Ordoñez</div>
-                <div class="cargo">Talento Humano</div>
+                <div class="cargo">{{ config('xr_rrhh.certificado_firma_nombre', 'Coordinación de Talento Humano') }}</div>
+                <div class="cargo">{{ config('xr_rrhh.certificado_firma_cargo', 'Talento Humano') }}</div>
 
             </div>
 

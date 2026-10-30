@@ -25,7 +25,7 @@
                     wire:model.live.debounce.300ms="search"
                     type="search"
                     placeholder="Buscar por título o categoría..."
-                    class="w-full max-w-sm rounded-lg border-gray-300 text-sm focus:border-brand-500 focus:ring-brand-500"
+                    class="w-full max-w-sm rounded-lg border-gray-300 text-sm focus:border-brand-600 focus:ring-accent-400"
                 >
                 <x-primary-button wire:click="toggleCreateForm">
                     {{ $showCreateForm ? 'Cancelar' : '+ Crear módulo' }}

@@ -30,6 +30,9 @@ class User extends Authenticatable
         'email',
         'password',
         'email_verified_at',
+        'id_card',
+        'phone',
+        'is_active',
     ];
 
     /**
@@ -104,6 +107,11 @@ class User extends Authenticatable
     public function capacitacionAsistencias(): HasMany
     {
         return $this->hasMany(CapacitacionAsistente::class);
+    }
+
+    public function moduloAsignaciones(): HasMany
+    {
+        return $this->hasMany(ModuloAsignacion::class);
     }
 
     /**

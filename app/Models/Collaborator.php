@@ -11,6 +11,13 @@ class Collaborator extends Model
     // El resto de los datos del colaborador pertenecen a xuri-apex.
     protected $fillable = [
         'user_id',
+        'code',
+        'first_name',
+        'last_name',
+        'id_card',
+        'function',
+        'email',
+        'birth_date',
     ];
 
     protected function casts(): array

@@ -2,64 +2,136 @@
 
 namespace App\Livewire\Colaboradores;
 
+use App\Models\Collaborator;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Spatie\Permission\Models\Role;
 
-/**
- * Roster de solo lectura. La creación/activación de cuentas, roles y
- * teléfono/cédula ahora se maneja directamente en Xuri Apex (esa app es
- * dueña de esos datos: users.phone, users.id_card, collaborators.function) --
- * acá solo se lee lo que ya existe allá, para no duplicar el dato en dos
- * bases. Lo único que sigue siendo 100% de xr-rrhh es el rol de instructor
- * (quién puede crear módulos/gestionar capacitaciones), por eso es lo único
- * que se puede tocar desde esta pantalla.
- */
 #[Layout('layouts.app')]
 class GestionAcceso extends Component
 {
     use WithPagination;
 
-    /**
-     * Nombres legibles para los roles de Xuri Apex que se usan como
-     * clasificación de área en administración (gente sin fila en
-     * `collaborators`, ej. Contabilidad, Auxiliar administrativo -- no
-     * abren ningún panel allá, son solo etiqueta de nómina). El rol de
-     * instructor no va acá porque ya tiene su propia columna.
-     */
-    public const ROLE_LABELS = [
-        'admin' => 'Administrador (Xuri Apex)',
-        'admin_assistant' => 'Auxiliar administrativo',
-        'admin_cedi' => 'Administrador de CEDI',
-        'accounting' => 'Contabilidad',
-        'cedi_staff' => 'Personal CEDI',
-        'cleaning_assistant' => 'Auxiliar de limpieza',
-        'commercial' => 'Comercial',
-        'commercial_china' => 'Comercial China',
-        'commercial_mexico' => 'Comercial México',
-        'conteo' => 'Conteo',
-        'control_calidad' => 'Control de calidad',
-        'despacho' => 'Despacho',
-        'driver' => 'Conductor',
-        'guard' => 'Guardia',
-        'imports' => 'Importaciones',
-        'inventory' => 'Inventario',
-        'logistics' => 'Logística',
-        'owner' => 'Propietario (Xuri Apex)',
-        'publicist' => 'Publicista',
-        'supervisor_comercial' => 'Supervisor comercial',
-        'warehouse' => 'Bodega',
-    ];
-
     public string $search = '';
 
+    // ─── Modal Crear Colaborador ─────────────────────────────────────────────
+    public bool $mostrandoModalCrear = false;
+
+    public string $nuevoNombre = '';
+
+    public string $nuevoEmail = '';
+
+    public string $nuevaCedula = '';
+
+    public string $nuevoTelefono = '';
+
+    public string $nuevoCargo = '';
+
+    public string $nuevoPassword = '';
+
+    public bool $esInstructor = false;
+
+    public bool $esSupervision = false;
+
+    // ─── Modal Confirmar Toggle Rol ─────────────────────────────────────────
     /** @var array{userId: int, userName: string, willActivate: bool}|null */
     public ?array $confirmingToggle = null;
 
     public function updatingSearch(): void
     {
         $this->resetPage();
+    }
+
+    public function abrirModalCrear(): void
+    {
+        $this->reset([
+            'nuevoNombre',
+            'nuevoEmail',
+            'nuevaCedula',
+            'nuevoTelefono',
+            'nuevoCargo',
+            'nuevoPassword',
+            'esInstructor',
+            'esSupervision',
+        ]);
+        $this->resetValidation();
+        $this->mostrandoModalCrear = true;
+        $this->dispatch('open-modal', 'modal-crear-colaborador');
+    }
+
+    public function cerrarModalCrear(): void
+    {
+        $this->mostrandoModalCrear = false;
+        $this->dispatch('close-modal', 'modal-crear-colaborador');
+    }
+
+    public function guardarColaborador(): void
+    {
+        $data = $this->validate([
+            'nuevoNombre' => ['required', 'string', 'max:150'],
+            'nuevoEmail' => ['required', 'email', 'max:150', 'unique:users,email'],
+            'nuevaCedula' => ['nullable', 'string', 'max:25'],
+            'nuevoTelefono' => ['nullable', 'string', 'max:30'],
+            'nuevoCargo' => ['nullable', 'string', 'max:100'],
+            'nuevoPassword' => ['nullable', 'string', 'min:6'],
+        ], [], [
+            'nuevoNombre' => 'nombre',
+            'nuevoEmail' => 'correo electrónico',
+            'nuevaCedula' => 'cédula',
+            'nuevoTelefono' => 'celular',
+            'nuevoCargo' => 'cargo / área',
+            'nuevoPassword' => 'contraseña',
+        ]);
+
+        $passwordPlano = $data['nuevoPassword'] ?: 'password';
+
+        // 1. Crear el usuario
+        $user = User::create([
+            'name' => $data['nuevoNombre'],
+            'email' => strtolower(trim($data['nuevoEmail'])),
+            'password' => Hash::make($passwordPlano),
+            'id_card' => $data['nuevaCedula'] ?: null,
+            'phone' => $data['nuevoTelefono'] ?: null,
+            'is_active' => true,
+            'email_verified_at' => now(),
+        ]);
+
+        // 2. Crear el colaborador asociado
+        $partes = explode(' ', trim($data['nuevoNombre']), 2);
+        Collaborator::create([
+            'user_id' => $user->id,
+            'first_name' => $partes[0] ?? $data['nuevoNombre'],
+            'last_name' => $partes[1] ?? '',
+            'id_card' => $data['nuevaCedula'] ?: null,
+            'function' => $data['nuevoCargo'] ?: null,
+            'email' => strtolower(trim($data['nuevoEmail'])),
+        ]);
+
+        // 3. Asignar roles si corresponde
+        if ($this->esInstructor) {
+            $user->assignRole(config('xr_rrhh.instructor_role'));
+        }
+
+        if ($this->esSupervision) {
+            $rolSupervision = Role::findOrCreate(config('xr_rrhh.supervision_role'), 'web');
+            $user->assignRole($rolSupervision);
+        }
+
+        $this->cerrarModalCrear();
+        session()->flash('success', "Colaborador {$user->name} creado exitosamente. Contraseña asignada: {$passwordPlano}");
+    }
+
+    public function toggleEstadoCuenta(int $userId): void
+    {
+        $user = User::findOrFail($userId);
+        $user->is_active = ! $user->is_active;
+        $user->save();
+
+        session()->flash('success', $user->is_active ? "Cuenta de {$user->name} activada." : "Cuenta de {$user->name} desactivada.");
     }
 
     public function askToggleInstructor(int $userId): void
@@ -99,13 +171,10 @@ class GestionAcceso extends Component
         $this->dispatch('close-modal', 'confirm-toggle');
     }
 
-    // Marca/desmarca una cuenta como "solo supervisión": deja de aparecer en
-    // actas, seguimiento y conteos de pendientes. Sin modal de confirmación
-    // porque no quita ni da acceso a nada, solo la oculta de esas listas.
     public function toggleSupervision(int $userId): void
     {
         $user = User::findOrFail($userId);
-        $role = \Spatie\Permission\Models\Role::findOrCreate(config('xr_rrhh.supervision_role'), 'web');
+        $role = Role::findOrCreate(config('xr_rrhh.supervision_role'), 'web');
 
         if ($user->hasRole($role)) {
             $user->removeRole($role);
@@ -123,6 +192,7 @@ class GestionAcceso extends Component
             ->when($this->search, fn ($q) => $q
                 ->where('name', 'like', "%{$this->search}%")
                 ->orWhere('email', 'like', "%{$this->search}%")
+                ->orWhere('id_card', 'like', "%{$this->search}%")
             )
             ->orderBy('name')
             ->paginate(15);

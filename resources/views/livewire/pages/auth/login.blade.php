@@ -27,7 +27,7 @@ new #[Layout('layouts.guest')] class extends Component
 <div>
     <div class="mb-8">
         <h2 class="text-2xl font-semibold text-gray-900">Inicia sesión</h2>
-        <p class="mt-1 text-sm text-gray-500">Usa la misma cuenta con la que ya accedes a Xuri.</p>
+        <p class="mt-1 text-sm text-gray-500">Ingresa tus credenciales institucionales de {{ config('xr_rrhh.empresa_nombre', 'MERAKI') }}.</p>
     </div>
 
     <!-- Session Status -->
@@ -37,7 +37,7 @@ new #[Layout('layouts.guest')] class extends Component
         <!-- Email Address -->
         <div>
             <x-input-label for="email" value="Correo electrónico" />
-            <x-text-input wire:model="form.email" id="email" class="block mt-1 w-full" type="email" name="email" required autofocus autocomplete="username" placeholder="nombreapellido@xurisa.com" />
+            <x-text-input wire:model="form.email" id="email" class="block mt-1 w-full" type="email" name="email" required autofocus autocomplete="username" placeholder="usuario@meraki.com" />
             <x-input-error :messages="$errors->get('form.email')" class="mt-2" />
         </div>
 

@@ -16,15 +16,18 @@ new class extends Component
     }
 }; ?>
 
-<nav x-data="{ open: false }" class="bg-white border-b border-gray-100">
+<nav x-data="{ open: false }" class="bg-white border-b border-purple-100 shadow-xs relative">
+    <!-- Barra superior institucional en degradado morado y fucsia -->
+    <div class="h-1 bg-gradient-to-r from-brand-700 via-accent-500 to-brand-700"></div>
+
     <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
             <div class="flex">
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center">
-                    <a href="{{ route('dashboard') }}" wire:navigate>
-                        <x-application-logo class="block h-9 w-auto" />
+                    <a href="{{ route('dashboard') }}" wire:navigate class="transition-transform hover:scale-105">
+                        <x-application-logo class="block h-10 w-auto" />
                     </a>
                 </div>
 
@@ -58,10 +61,13 @@ new class extends Component
             <div class="hidden sm:flex sm:items-center sm:ms-6">
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
-                        <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
+                        <button class="inline-flex items-center gap-2.5 px-3 py-1.5 border border-purple-100 text-sm leading-4 font-medium rounded-full text-gray-700 bg-white hover:text-brand-800 hover:bg-brand-50/50 hover:border-brand-200 focus:outline-none transition ease-in-out duration-150 shadow-xs">
+                            <div class="h-7 w-7 rounded-full bg-gradient-to-tr from-brand-700 via-brand-600 to-accent-500 text-white font-bold flex items-center justify-center text-xs shadow-xs">
+                                {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                            </div>
                             <div x-data="{{ json_encode(['name' => auth()->user()->name]) }}" x-text="name" x-on:profile-updated.window="name = $event.detail.name"></div>
 
-                            <div class="ms-1">
+                            <div class="ms-0.5 text-gray-400">
                                 <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                                 </svg>
@@ -86,7 +92,7 @@ new class extends Component
 
             <!-- Hamburger -->
             <div class="-me-2 flex items-center sm:hidden">
-                <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-500 transition duration-150 ease-in-out">
+                <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-brand-700 hover:bg-purple-50 focus:outline-none focus:bg-purple-50 focus:text-brand-700 transition duration-150 ease-in-out">
                     <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                         <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                         <path :class="{'hidden': ! open, 'inline-flex': open }" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -123,10 +129,15 @@ new class extends Component
         </div>
 
         <!-- Responsive Settings Options -->
-        <div class="pt-4 pb-1 border-t border-gray-200">
-            <div class="px-4">
-                <div class="font-medium text-base text-gray-800" x-data="{{ json_encode(['name' => auth()->user()->name]) }}" x-text="name" x-on:profile-updated.window="name = $event.detail.name"></div>
-                <div class="font-medium text-sm text-gray-500">{{ auth()->user()->email }}</div>
+        <div class="pt-4 pb-2 border-t border-purple-100">
+            <div class="px-4 flex items-center gap-3">
+                <div class="h-9 w-9 rounded-full bg-gradient-to-tr from-brand-700 via-brand-600 to-accent-500 text-white font-bold flex items-center justify-center text-sm shadow-xs">
+                    {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                </div>
+                <div>
+                    <div class="font-semibold text-base text-gray-800" x-data="{{ json_encode(['name' => auth()->user()->name]) }}" x-text="name" x-on:profile-updated.window="name = $event.detail.name"></div>
+                    <div class="font-medium text-xs text-brand-600">{{ auth()->user()->email }}</div>
+                </div>
             </div>
 
             <div class="mt-3 space-y-1">

@@ -18,7 +18,7 @@
                 <a
                     href="{{ route('modulos.seguimiento', $modulo) }}"
                     wire:navigate
-                    class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 transition"
+                    class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-brand-700 via-brand-600 to-accent-500 hover:from-brand-800 hover:to-accent-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:shadow transition"
                 >
                     Ver seguimiento →
                 </a>

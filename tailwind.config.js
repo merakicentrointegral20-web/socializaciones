@@ -15,19 +15,39 @@ export default {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
             },
             colors: {
-                // Basado en el azul institucional de Xuri (#1a4c9a)
+                // Paleta inspirada en el logo de MERAKI (Morado, Fucsia y Blanco institucional)
                 brand: {
-                    50: '#eef4fc',
-                    100: '#d9e6f7',
-                    200: '#b3cdef',
-                    300: '#82ade3',
-                    400: '#4d86d2',
-                    500: '#2c65b8',
-                    600: '#1a4c9a',
-                    700: '#163d7c',
-                    800: '#143363',
-                    900: '#132c52',
-                    950: '#0c1b34',
+                    50: '#fcf6fe',
+                    100: '#f7ebfd',
+                    200: '#edd5fa',
+                    300: '#dfb4f5',
+                    400: '#cb86ee',
+                    500: '#a847d8',
+                    600: '#851c99',
+                    700: '#681878', // Morado exacto del logo MERAKI
+                    800: '#52125e',
+                    900: '#3b0944',
+                    950: '#26042c',
+                },
+                meraki: {
+                    purple: '#681878',
+                    fuchsia: '#e6007e', // Fucsia exacto de los lentes y detalles del logo MERAKI
+                    pink: '#f02293',
+                    dark: '#26042c',
+                    light: '#fdf2f8',
+                },
+                accent: {
+                    50: '#fef2f8',
+                    100: '#fde5f3',
+                    200: '#fbcde8',
+                    300: '#f7a4d5',
+                    400: '#f06bb9',
+                    500: '#e6007e', // Fucsia exacto del logo MERAKI
+                    600: '#d0006e',
+                    700: '#ae005c',
+                    800: '#8e034c',
+                    900: '#750841',
+                    950: '#460023',
                 },
             },
         },

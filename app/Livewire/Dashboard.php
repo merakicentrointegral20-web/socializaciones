@@ -33,12 +33,15 @@ class Dashboard extends Component
 
         $resumenModulos = $modulos->map(function (Modulo $modulo) use ($certificadosPorModulo, $totalNomina) {
             $completados = $certificadosPorModulo->get($modulo->id, collect())->count();
+            $totalObjetivo = $modulo->asignado_a_todos
+                ? $totalNomina
+                : $modulo->asignaciones()->count();
 
             return (object) [
                 'modulo' => $modulo,
                 'completados' => $completados,
-                'pendientes' => max($totalNomina - $completados, 0),
-                'porcentaje' => $totalNomina > 0 ? (int) round($completados / $totalNomina * 100) : 0,
+                'pendientes' => max($totalObjetivo - $completados, 0),
+                'porcentaje' => $totalObjetivo > 0 ? (int) round($completados / $totalObjetivo * 100) : 0,
             ];
         });
 
@@ -51,10 +54,11 @@ class Dashboard extends Component
             ->get()
             ->map(function (User $user) use ($modulos, $certificadosPorUsuario) {
                 $completados = $certificadosPorUsuario->get($user->id, []);
+                $modulosAsignados = $modulos->filter(fn (Modulo $m) => $m->visiblePara($user));
 
                 return (object) [
                     'user' => $user,
-                    'pendientes' => $modulos->reject(fn (Modulo $m) => in_array($m->id, $completados)),
+                    'pendientes' => $modulosAsignados->reject(fn (Modulo $m) => in_array($m->id, $completados)),
                 ];
             })
             ->filter(fn ($fila) => $fila->pendientes->isNotEmpty())

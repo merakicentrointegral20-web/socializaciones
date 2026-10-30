@@ -66,13 +66,19 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'empresa_nombre' => 'XURI S.A.',
+    'empresa_nombre' => env('EMPRESA_NOMBRE', 'MERAKI'),
 
-    'empresa_ciudad' => 'La Troncal',
+    'empresa_ciudad' => env('EMPRESA_CIUDAD', 'Guayaquil'),
 
-    'empresa_logo' => public_path('img/impxurisa-04.svg'),
+    'empresa_logo' => env('EMPRESA_LOGO', public_path('img/logo.png')),
 
-    'certificado_firma' => public_path('img/firma-antonio-ordonez.png'),
+    'empresa_logo_web' => env('EMPRESA_LOGO_WEB', 'img/logo.png'),
+
+    'certificado_firma' => env('CERTIFICADO_FIRMA', public_path('img/firma.png')),
+
+    'certificado_firma_nombre' => env('CERTIFICADO_FIRMA_NOMBRE', 'Dirección de Talento Humano'),
+
+    'certificado_firma_cargo' => env('CERTIFICADO_FIRMA_CARGO', 'Talento Humano'),
 
     /*
     |--------------------------------------------------------------------------

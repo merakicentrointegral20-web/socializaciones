@@ -31,7 +31,7 @@
         h1 {
             text-align: center;
             font-size: 14pt;
-            color: #143363;
+            color: #681878;
             letter-spacing: 0.5pt;
             margin: 12pt 0 14pt;
         }
@@ -53,7 +53,7 @@
 
         .datos .valor {
             font-weight: bold;
-            color: #143363;
+            color: #681878;
         }
 
         table.asistencia {
@@ -63,22 +63,22 @@
         }
 
         table.asistencia th {
-            background: #f3f4f6;
-            color: #374151;
+            background: #fdf2f8;
+            color: #681878;
             text-align: left;
             padding: 6pt 8pt;
-            border: 0.75pt solid #d1d5db;
+            border: 0.75pt solid #e9d5ff;
         }
 
         table.asistencia td {
             padding: 10pt 8pt;
-            border: 0.75pt solid #d1d5db;
+            border: 0.75pt solid #e9d5ff;
             height: 22pt;
         }
 
         table.asistencia td.nombre {
             font-weight: bold;
-            color: #143363;
+            color: #681878;
         }
 
         table.asistencia td.cedula {

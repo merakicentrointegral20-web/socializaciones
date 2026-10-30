@@ -1,59 +1,147 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🚀 MERAKI - Plataforma de Capacitación, Inducción y Certificación
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Sistema integral de gestión de talento humano para la capacitación, evaluación continua y certificación de colaboradores, diseñado con **Laravel 12**, **Livewire 3**, **TailwindCSS** y **DomPDF**.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 📋 Características Principales
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+1. **Gestión de Módulos de Aprendizaje:**
+   - Creación de módulos por categorías (Recursos Humanos, Seguridad Ocupacional, Calidad, etc.).
+   - Modalidades **Presenciales** y **Virtuales**.
+   - Material de lectura obligatorio y material de apoyo (PDF, diapositivas e imágenes).
+   - Integración de videos secuenciales (OneDrive embebido, YouTube, Google Drive o Vimeo). Candado estricto: el colaborador no puede avanzar al siguiente video sin completar el anterior.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+2. **Evaluaciones Automáticas:**
+   - Banco de preguntas por módulo: **Verdadero/Falso** y **Opción múltiple**.
+   - Auto-calificación instantánea sobre 10 con umbral de aprobación configurable.
+   - **Regla pedagógica de 3 intentos:** Si reprueba 3 veces en el ciclo actual, el sistema bloquea el examen y exige reiniciar el módulo (releer y volver a ver los videos) para reabrir una nueva oportunidad.
 
-## Learning Laravel
+3. **Certificación Digital Inmediata:**
+   - Emisión automática de certificados en PDF de alta fidelidad tras aprobar el módulo.
+   - Código único de verificación (UUID) y correlativo anual (`001-2026`).
+   - Firma y sellos institucionales de **MERAKI**.
+   - Soporte para versiones con carga horaria por períodos anuales para auditorías.
+   - Descarga individual y descarga en lote (ZIP) por capacitación.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+4. **Inducciones Presenciales y Actas de Asistencia:**
+   - Agendamiento grupal con control anti-colisión de horarios para instructores (30 min).
+   - Generación de acta de asistencia en blanco en PDF para recolección de firmas físicas.
+   - Registro de asistencia con obligatoriedad de adjuntar el escaneo o fotografía del acta firmada.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+5. **Administración de Colaboradores y Accesos:**
+   - Alta de personal directamente desde la interfaz web (nombre, correo, cédula, cargo, celular).
+   - Asignación de rol de **Instructor** (crea módulos y administra eventos) y **Solo Supervisión** (jefaturas/auditoría que no rinden exámenes).
+   - Activación o desactivación de cuentas con un solo clic.
+   - Recordatorios directos vía WhatsApp con un clic.
 
-## Laravel Sponsors
+---
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## 🎨 ¿Cómo cambiar el Logo y la Marca? (Súper Fácil)
 
-### Premium Partners
+Toda la identidad corporativa se controla en **un solo lugar**:
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### 1. Cambiar el Logo:
+Simplemente coloca tu imagen en:
+```text
+public/img/logo.png
+```
+*(Opcional: Si tu archivo tiene otro nombre o formato como `logo.svg` o `logo.jpg`, solo configúralo en tu archivo `.env`: `EMPRESA_LOGO="img/tu-logo.png"`)*.
+> **Nota:** Si no subes ninguna imagen, el sistema genera automáticamente un isotipo moderno y elegante con la letra inicial de tu empresa.
 
-## Contributing
+### 2. Cambiar Nombre, Ciudad o Firma:
+Abre tu archivo `.env` y edita estas variables:
+```env
+EMPRESA_NOMBRE="MERAKI"
+EMPRESA_CIUDAD="Guayaquil"
+EMPRESA_LOGO="img/logo.png"
+EMPRESA_LOGO_WEB="img/logo.png"
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+# Firma para los certificados PDF:
+CERTIFICADO_FIRMA="img/firma.png"
+CERTIFICADO_FIRMA_NOMBRE="Dirección de Talento Humano"
+CERTIFICADO_FIRMA_CARGO="Talento Humano"
+```
 
-## Code of Conduct
+---
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## 🛠️ Instalación y Puesta en Marcha
 
-## Security Vulnerabilities
+### Prerrequisitos:
+* **PHP 8.2 o superior** (con extensiones `pdo_mysql`, `gd`, `zip`, `fileinfo`, `mbstring`, `openssl`).
+* **Composer**
+* **Node.js** (v18+) y **NPM**
+* **MySQL** o **PostgreSQL**
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Paso 1: Clonar el Repositorio
+```bash
+git clone https://github.com/TU_USUARIO/meraki-capacitaciones.git
+cd meraki-capacitaciones
+```
 
-## License
+### Paso 2: Instalar Dependencias
+```bash
+composer install
+npm install
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Paso 3: Configurar el Entorno
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+Configura las credenciales de tu base de datos MySQL en el archivo `.env`:
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=meraki_capacitaciones
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+### Paso 4: Ejecutar Migraciones y Datos Iniciales
+```bash
+php artisan migrate --seed
+```
+Esto creará todas las tablas necesarias y registrará el usuario administrador inicial:
+* **Usuario:** `admin@meraki.com`
+* **Contraseña:** `password`
+
+### Paso 5: Compilar Assets y Ejecutar el Servidor
+```bash
+npm run build
+php artisan serve
+```
+Abre en tu navegador: `http://127.0.0.1:8000`
+
+---
+
+## ☁️ Opciones de Despliegue en la Nube y Firebase
+
+### 1. Base de Datos: ¿Por qué MySQL y no Firebase Firestore?
+Laravel Eloquent utiliza un modelo **relacional SQL** para calcular intentos, conteos de nómina, asistencias, banco de preguntas con opciones múltiples y permisos Spatie. Intentar usar una base NoSQL (como Firestore) rompería las relaciones y paquetes del sistema.
+
+Para producción, puedes usar una base de datos MySQL gestionada:
+* **Railway / Render:** Despliega Laravel y MySQL juntos con 1 solo clic desde GitHub.
+* **Google Cloud SQL:** Si deseas toda la infraestructura dentro del ecosistema de Google / Firebase.
+* **Hosting cPanel / VPS:** Funciona en cualquier servidor estándar con PHP y MySQL.
+
+### 2. Uso Recomendado de Firebase (Firebase Storage):
+Puedes conectar **Firebase Storage** (Google Cloud Storage) en Laravel para almacenar todos los certificados emitidos, actas escaneadas y presentaciones en la nube de Google usando el driver de Cloud Storage de Laravel.
+
+---
+
+## 📁 Estructura del Proyecto
+
+* `app/Livewire/Colaboradores/`: Administración de nómina y altas de colaboradores.
+* `app/Livewire/MisModulos/`: Portal del colaborador (lectura, videos, evaluaciones).
+* `app/Livewire/Modulos/`: Editor de módulos, seguimiento de asistencias y actas.
+* `app/Models/`: Modelos de datos (`Modulo`, `Pregunta`, `EvaluacionIntento`, `Certificado`, `Capacitacion`).
+* `resources/views/pdf/`: Plantillas DomPDF de Certificados y Actas de Inducción.
+* `config/xr_rrhh.php`: Configuración global de marca e institucional.
+
+---
+
+## 📄 Licencia
+Este proyecto es privado y de uso exclusivo para **MERAKI**.
