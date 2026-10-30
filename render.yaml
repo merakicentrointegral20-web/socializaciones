@@ -1,3 +1,8 @@
+databases:
+  - name: socializaciones-db
+    plan: free
+    region: oregon
+
 services:
   - type: web
     name: socializaciones-meraki
@@ -12,10 +17,12 @@ services:
         value: production
       - key: APP_DEBUG
         value: false
-      - key: DB_CONNECTION
-        value: sqlite
-      - key: DB_DATABASE
-        value: /var/www/html/database/database.sqlite
+      - key: APP_URL
+        value: "https://socializaciones.onrender.com"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: socializaciones-db
+          property: connectionString
       - key: SESSION_DRIVER
         value: database
       - key: CACHE_STORE

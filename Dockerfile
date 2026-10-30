@@ -17,9 +17,10 @@ RUN apt-get update && apt-get install -y \
     unzip \
     sqlite3 \
     libsqlite3-dev \
+    libpq-dev \
     curl \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) gd zip pdo pdo_mysql pdo_sqlite bcmath \
+    && docker-php-ext-install -j$(nproc) gd zip pdo pdo_mysql pdo_pgsql pdo_sqlite bcmath \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Enable Apache mod_rewrite

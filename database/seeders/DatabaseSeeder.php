@@ -55,5 +55,28 @@ class DatabaseSeeder extends Seeder
 
         $admin->assignRole($rolInstructor);
         $admin->givePermissionTo($permisoColaboradores);
+
+        // 5. Módulo inicial de capacitación si no existe ninguno
+        if (\App\Models\Modulo::count() === 0) {
+            $cat = Categoria::where('nombre', 'Recursos Humanos')->first() ?? Categoria::first();
+            $modulo = \App\Models\Modulo::create([
+                'titulo' => 'Módulo 1: Igualdad de Género y No Discriminación',
+                'categoria_id' => $cat?->id,
+                'categoria' => $cat?->nombre ?? 'Recursos Humanos',
+                'tipo_induccion' => 'general',
+                'contenido' => 'Capacitación integral sobre igualdad de género, no discriminación y prevención del acoso laboral para todo el personal de MERAKI Centro de Atención Integral.',
+                'umbral_aprobacion' => 70,
+                'activo' => true,
+                'created_by' => $admin->id,
+            ]);
+
+            $modulo->videos()->create([
+                'titulo' => 'Video 1: Bienvenida al Módulo',
+                'descripcion' => 'En este video presentamos el Módulo 1 de Igualdad de Género y No Discriminación. Conocerás tus derechos constitucionales y normativas.',
+                'embed_url' => 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ',
+                'orden' => 1,
+                'created_by' => $admin->id,
+            ]);
+        }
     }
 }

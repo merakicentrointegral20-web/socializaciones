@@ -11,10 +11,17 @@ if ! grep -q "SetEnvIf X-Forwarded-Proto" /etc/apache2/sites-available/000-defau
     sed -i '/<VirtualHost/a \    SetEnvIf X-Forwarded-Proto https HTTPS=on' /etc/apache2/sites-available/000-default.conf
 fi
 
-# Setup SQLite database file if DB_CONNECTION is sqlite (or fallback default)
-mkdir -p /var/www/html/database
-if [ ! -f /var/www/html/database/database.sqlite ]; then
-    touch /var/www/html/database/database.sqlite
+# Detect persistent database (PostgreSQL on Render)
+if [ -n "$DATABASE_URL" ]; then
+    export DB_CONNECTION=pgsql
+fi
+
+# Setup SQLite fallback database file only if using sqlite
+if [ "${DB_CONNECTION:-sqlite}" = "sqlite" ] && [ -z "$DATABASE_URL" ]; then
+    mkdir -p /var/www/html/database
+    if [ ! -f /var/www/html/database/database.sqlite ]; then
+        touch /var/www/html/database/database.sqlite
+    fi
 fi
 
 # Ensure all storage directories exist for uploads, livewire temporary files, and cache
