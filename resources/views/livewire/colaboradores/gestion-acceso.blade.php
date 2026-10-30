@@ -4,7 +4,7 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 Personal y Colaboradores
             </h2>
-            <x-primary-button wire:click="abrirModalCrear">
+            <x-primary-button type="button" x-data x-on:click="$dispatch('open-modal', 'modal-crear-colaborador')" wire:click="abrirModalCrear">
                 + Nuevo Colaborador
             </x-primary-button>
         </div>
@@ -66,6 +66,9 @@
                     placeholder="Buscar por nombre, correo o cédula..."
                     class="w-full max-w-sm rounded-lg border-gray-300 text-sm focus:border-brand-600 focus:ring-accent-400"
                 >
+                <x-primary-button type="button" x-data x-on:click="$dispatch('open-modal', 'modal-crear-colaborador')" wire:click="abrirModalCrear">
+                    + Nuevo Colaborador
+                </x-primary-button>
             </div>
 
             {{-- ─── Tabla Personal ─────────────────────────────────────────────── --}}
@@ -236,7 +239,7 @@
             </div>
 
             <div class="mt-6 flex justify-end gap-3">
-                <x-secondary-button wire:click="cerrarModalCrear">
+                <x-secondary-button type="button" x-data x-on:click="$dispatch('close-modal', 'modal-crear-colaborador')" wire:click="cerrarModalCrear">
                     Cancelar
                 </x-secondary-button>
 
