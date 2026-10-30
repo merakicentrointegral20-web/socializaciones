@@ -187,7 +187,7 @@
                         accept=".pdf,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.gif"
                         class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"
                     >
-                    <p class="text-xs text-gray-400">PDF, PPT, PPTX, JPG, PNG, WEBP o GIF, máximo 25 MB por archivo.</p>
+                    <p class="text-xs text-gray-400">PDF, PPT, PPTX, JPG, PNG, WEBP o GIF, máximo 100 MB por archivo.</p>
                     <x-input-error :messages="$errors->get('nuevosArchivosObligatorios.*')" class="mt-1" />
 
                     <div wire:loading wire:target="nuevosArchivosObligatorios" class="text-xs text-gray-400">
@@ -246,7 +246,7 @@
                         accept=".pdf,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.gif"
                         class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"
                     >
-                    <p class="text-xs text-gray-400">PDF, PPT, PPTX, JPG, PNG, WEBP o GIF, máximo 25 MB por archivo.</p>
+                    <p class="text-xs text-gray-400">PDF, PPT, PPTX, JPG, PNG, WEBP o GIF, máximo 100 MB por archivo.</p>
                     <x-input-error :messages="$errors->get('nuevosArchivosApoyo.*')" class="mt-1" />
 
                     <div wire:loading wire:target="nuevosArchivosApoyo" class="text-xs text-gray-400">
@@ -269,32 +269,56 @@
 
                 <div class="divide-y divide-gray-100">
                     @forelse ($videos as $i => $video)
-                        <div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-                            <div class="flex items-center gap-3 min-w-0 flex-1">
-                                <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-brand-50 text-sm font-semibold text-brand-700 shrink-0">
-                                    {{ $i + 1 }}
-                                </span>
-                                <div class="min-w-0 flex-1">
-                                    <p class="text-sm text-gray-800 font-medium truncate">{{ $video->titulo }}</p>
-                                    @if ($video->descripcion)
-                                        <p class="text-xs text-gray-500 mt-0.5 truncate">{{ $video->descripcion }}</p>
-                                    @endif
-                                    <a href="{{ $video->embed_url }}" target="_blank" class="text-xs text-gray-400 hover:text-brand-600">
-                                        Ver enlace ↗
-                                    </a>
+                        <div class="p-5 space-y-4">
+                            <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                                <div class="flex items-start gap-3 min-w-0 flex-1">
+                                    <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-brand-50 text-sm font-semibold text-brand-700 shrink-0 mt-0.5">
+                                        {{ $i + 1 }}
+                                    </span>
+                                    <div class="min-w-0 flex-1">
+                                        <h4 class="text-base text-gray-900 font-semibold">{{ $video->titulo }}</h4>
+                                        @if ($video->descripcion)
+                                            <p class="text-xs text-gray-500 mt-1 leading-relaxed">{{ $video->descripcion }}</p>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-1 shrink-0 self-end sm:self-auto">
+                                    <button type="button" wire:click="moverVideoArriba({{ $video->id }})" @if ($i === 0) disabled @endif class="h-8 w-8 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-800 disabled:opacity-25 disabled:hover:bg-transparent" title="Mover arriba">
+                                        ↑
+                                    </button>
+                                    <button type="button" wire:click="moverVideoAbajo({{ $video->id }})" @if ($i === $videos->count() - 1) disabled @endif class="h-8 w-8 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-800 disabled:opacity-25 disabled:hover:bg-transparent" title="Mover abajo">
+                                        ↓
+                                    </button>
+                                    <div class="w-px h-5 bg-gray-200 mx-1"></div>
+                                    <button type="button" wire:click="eliminarVideo({{ $video->id }})" wire:confirm="¿Eliminar este video? Esta acción no se puede deshacer." class="h-8 w-8 rounded-lg border border-red-200 text-red-600 hover:bg-red-50" title="Eliminar video">
+                                        ✕
+                                    </button>
                                 </div>
                             </div>
-                            <div class="flex items-center gap-1 shrink-0 self-end sm:self-auto">
-                                <button type="button" wire:click="moverVideoArriba({{ $video->id }})" @if ($i === 0) disabled @endif class="h-8 w-8 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-800 disabled:opacity-25 disabled:hover:bg-transparent" title="Mover arriba">
-                                    ↑
-                                </button>
-                                <button type="button" wire:click="moverVideoAbajo({{ $video->id }})" @if ($i === $videos->count() - 1) disabled @endif class="h-8 w-8 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-800 disabled:opacity-25 disabled:hover:bg-transparent" title="Mover abajo">
-                                    ↓
-                                </button>
-                                <div class="w-px h-5 bg-gray-200 mx-1"></div>
-                                <button type="button" wire:click="eliminarVideo({{ $video->id }})" wire:confirm="¿Eliminar este video? Esta acción no se puede deshacer." class="h-8 w-8 rounded-lg border border-red-200 text-red-600 hover:bg-red-50" title="Eliminar video">
-                                    ✕
-                                </button>
+
+                            {{-- Reproductor de video embebido directamente --}}
+                            <div wire:ignore class="aspect-video w-full max-w-2xl rounded-xl overflow-hidden bg-gray-900 shadow-sm border border-gray-200">
+                                @if (preg_match('/\.(mp4|webm|ogg)($|\?)/i', $video->embed_url))
+                                    <video controls class="w-full h-full" preload="metadata">
+                                        <source src="{{ $video->embed_url }}">
+                                        Tu navegador no soporta el reproductor de video HTML5.
+                                    </video>
+                                @else
+                                    <iframe
+                                        src="{{ $video->embed_url }}"
+                                        class="w-full h-full"
+                                        allowfullscreen
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    ></iframe>
+                                @endif
+                            </div>
+
+                            <div class="flex items-center justify-between text-xs text-gray-400 pt-1">
+                                <span class="truncate max-w-md">Enlace: {{ $video->embed_url }}</span>
+                                <a href="{{ $video->embed_url }}" target="_blank" class="text-brand-600 hover:text-brand-800 font-medium inline-flex items-center gap-1 shrink-0 ml-2">
+                                    <span>Abrir en nueva pestaña</span>
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                </a>
                             </div>
                         </div>
                     @empty
@@ -318,8 +342,9 @@
                     </div>
 
                     <div>
-                        <x-input-label for="nuevoVideoUrl" value="Link del video" />
-                        <textarea wire:model="nuevoVideoUrl" id="nuevoVideoUrl" rows="2" class="w-full rounded-lg border-gray-300 text-sm focus:border-brand-500 focus:ring-brand-500" placeholder="OneDrive (link de Insertar), Google Drive, YouTube o Vimeo..."></textarea>
+                        <x-input-label for="nuevoVideoUrl" value="Link del video o código para insertar" />
+                        <textarea wire:model="nuevoVideoUrl" id="nuevoVideoUrl" rows="2" class="w-full rounded-lg border-gray-300 text-sm focus:border-brand-500 focus:ring-brand-500" placeholder="OneDrive (código de Insertar), Google Drive, YouTube, Vimeo, video MP4..."></textarea>
+                        <p class="text-xs text-gray-400 mt-1">Soporta videos directos MP4, YouTube, Vimeo, Google Drive o OneDrive (en OneDrive usa la opción "Insertar" y copia el código).</p>
                         <x-input-error :messages="$errors->get('nuevoVideoUrl')" class="mt-1" />
                     </div>
 

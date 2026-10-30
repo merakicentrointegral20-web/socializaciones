@@ -227,7 +227,7 @@ class Editor extends Component
     private function guardarArchivos(string $propiedad, string $categoria): void
     {
         $this->validate([
-            "$propiedad.*" => ['file', 'mimes:pdf,ppt,pptx,jpg,jpeg,png,webp,gif', 'max:25600'],
+            "$propiedad.*" => ['file', 'mimes:pdf,ppt,pptx,jpg,jpeg,png,webp,gif', 'max:102400'],
         ], [], [
             "$propiedad.*" => 'archivo',
         ]);
@@ -318,7 +318,7 @@ class Editor extends Component
 
         $host = strtolower((string) parse_url($src, PHP_URL_HOST));
 
-        if (str_contains($host, 'onedrive') || str_contains($host, 'sharepoint')) {
+        if (str_contains($host, 'onedrive') || str_contains($host, 'sharepoint') || str_contains($host, '1drv.ms')) {
             return $src;
         }
 
@@ -334,7 +334,11 @@ class Editor extends Component
             return $this->embedDeGoogleDrive($src);
         }
 
-        return null;
+        if (str_contains($host, 'loom.com')) {
+            return str_replace('/share/', '/embed/', $src);
+        }
+
+        return $src;
     }
 
     private function embedDeYoutube(string $url): ?string

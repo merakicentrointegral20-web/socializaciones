@@ -161,8 +161,20 @@
                                     destruir/recrear el <iframe> si se deja mezclado con contenido
                                     que sí cambia (ej. el botón que pasa a check) -- se aísla para
                                     que el navegador nunca lo toque de nuevo una vez montado. --}}
-                                    <div wire:ignore class="aspect-video w-full rounded-xl overflow-hidden bg-gray-50">
-                                        <iframe src="{{ $video->embed_url }}" class="w-full h-full" allowfullscreen></iframe>
+                                    <div wire:ignore class="aspect-video w-full rounded-xl overflow-hidden bg-gray-900 shadow-sm border border-gray-100">
+                                        @if (preg_match('/\.(mp4|webm|ogg)($|\?)/i', $video->embed_url))
+                                            <video controls class="w-full h-full" preload="metadata">
+                                                <source src="{{ $video->embed_url }}">
+                                                Tu navegador no soporta el reproductor de video HTML5.
+                                            </video>
+                                        @else
+                                            <iframe
+                                                src="{{ $video->embed_url }}"
+                                                class="w-full h-full"
+                                                allowfullscreen
+                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                            ></iframe>
+                                        @endif
                                     </div>
 
                                     @if ($item->completado)

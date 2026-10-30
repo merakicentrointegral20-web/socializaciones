@@ -17,14 +17,27 @@ if [ ! -f /var/www/html/database/database.sqlite ]; then
     touch /var/www/html/database/database.sqlite
 fi
 
-# Ensure storage directories exist
-mkdir -p /var/www/html/storage/framework/cache
-mkdir -p /var/www/html/storage/framework/sessions
-mkdir -p /var/www/html/storage/framework/views
-mkdir -p /var/www/html/storage/logs
+# Ensure all storage directories exist for uploads, livewire temporary files, and cache
+mkdir -p /var/www/html/storage/app/public \
+         /var/www/html/storage/app/private \
+         /var/www/html/storage/app/livewire-tmp \
+         /var/www/html/storage/app/private/livewire-tmp \
+         /var/www/html/storage/framework/cache \
+         /var/www/html/storage/framework/sessions \
+         /var/www/html/storage/framework/views \
+         /var/www/html/storage/logs
 
+# Set full permissions so Apache (www-data) can read/write files and uploads
 chown -R www-data:www-data /var/www/html/database /var/www/html/storage /var/www/html/bootstrap/cache
-chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database
+chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database
+
+# Ensure public storage symlink exists
+php artisan storage:link --force || true
+
+# Set fallback APP_URL if not provided
+if [ -z "$APP_URL" ]; then
+    export APP_URL="${RENDER_EXTERNAL_URL:-https://socializaciones.onrender.com}"
+fi
 
 # Ensure APP_KEY exists
 if [ -z "$APP_KEY" ]; then
